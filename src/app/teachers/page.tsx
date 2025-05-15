@@ -3,7 +3,7 @@
 import { TeacherCard } from '@/components/teacher-card';
 import { mockTeachers } from '@/lib/mock-data';
 import { Input } from '@/components/ui/input';
-import { useState }_ from 'react'; // Import useState
+import { useState } from 'react'; // Import useState
 import { Users } from 'lucide-react';
 
 export default function TeachersPage() {
