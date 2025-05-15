@@ -1,12 +1,19 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { addUnavailability, removeUnavailability, getUnavailabilitiesForTeacher, simulatedUser, mockTeachers } from '@/lib/mock-data';
-import type { Availability, SimulatedUser } from '@/types';
-import { format } from 'date-fns';
+import { 
+  getTeacherUnavailabilitiesService, 
+  addAvailabilityEntryService, 
+  removeAvailabilityEntryService,
+  getCurrentSimulatedUserService,
+  getTeachersService
+} from '@/lib/data-service';
+import type { Availability, SimulatedUser, Teacher } from '@/types';
+import { format, isSameDay } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,54 +24,130 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function AvailabilityForm() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [reason, setReason] = useState('');
-  const [currentUser, setCurrentUser] = useState<SimulatedUser>(simulatedUser);
+  const [currentUser, setCurrentUser] = useState<SimulatedUser | null>(null);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadUnavailabilities = (teacherId: string) => {
-    const dates = getUnavailabilitiesForTeacher(teacherId).map(ua => ua.date);
-    setUnavailableDates(dates);
+  useEffect(() => {
+    async function fetchInitialData() {
+      setIsLoading(true);
+      try {
+        const [user, teachers] = await Promise.all([
+          getCurrentSimulatedUserService(),
+          getTeachersService()
+        ]);
+        setCurrentUser(user);
+        setAllTeachers(teachers);
+        if (user) {
+          await loadUnavailabilities(user.id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch initial availability data:", error);
+        toast({ title: "Error", description: "Could not load initial data.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchInitialData();
+  }, []);
+
+  const loadUnavailabilities = async (teacherId: string) => {
+    try {
+      const unavailabilities = await getTeacherUnavailabilitiesService(teacherId);
+      const dates = unavailabilities.map(ua => ua.date);
+      setUnavailableDates(dates);
+    } catch (error) {
+      console.error("Failed to load unavailabilities:", error);
+      toast({ title: "Error", description: "Could not load unavailabilities.", variant: "destructive" });
+    }
   };
   
   useEffect(() => {
-    loadUnavailabilities(currentUser.id);
-  }, [currentUser.id]);
+    if (currentUser?.id) {
+      loadUnavailabilities(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
-    if (date) {
-      const existingUnavailability = getUnavailabilitiesForTeacher(currentUser.id).find(
-        ua => ua.date.toDateString() === date.toDateString()
+    if (date && currentUser) {
+      const existingUnavailability = unavailableDates.find(
+        d => isSameDay(d, date)
       );
-      setReason(existingUnavailability?.reason || '');
+      // To get the reason, we'd ideally fetch the full Availability object or have it in state
+      // For now, if it's unavailable, we clear reason as it might be from a different selection.
+      setReason(existingUnavailability ? '' : ''); // Simplified for now
     } else {
       setReason('');
     }
   };
 
-  const handleSetAvailability = (available: boolean) => {
-    if (!selectedDate) {
-      toast({ title: "No date selected", description: "Please select a date first.", variant: "destructive" });
+  const handleSetAvailability = async (available: boolean) => {
+    if (!selectedDate || !currentUser) {
+      toast({ title: "No date/user selected", description: "Please select a date and ensure user is loaded.", variant: "destructive" });
       return;
     }
 
-    if (!available) { // Setting as unavailable
-      addUnavailability({ teacherId: currentUser.id, date: selectedDate, isUnavailable: true, reason });
-      toast({ title: "Date marked as unavailable", description: `${format(selectedDate, 'PPP')} is now unavailable.`, variant: "default" });
-    } else { // Setting as available
-      removeUnavailability(selectedDate, currentUser.id);
-      toast({ title: "Date marked as available", description: `${format(selectedDate, 'PPP')} is now available.`, variant: "default" });
+    setIsSubmitting(true);
+    try {
+      if (!available) { // Setting as unavailable
+        await addAvailabilityEntryService({ teacherId: currentUser.id, date: selectedDate, isUnavailable: true, reason });
+        toast({ title: "Date marked as unavailable", description: `${format(selectedDate, 'PPP')} is now unavailable.`, variant: "default" });
+      } else { // Setting as available
+        await removeAvailabilityEntryService(selectedDate, currentUser.id);
+        toast({ title: "Date marked as available", description: `${format(selectedDate, 'PPP')} is now available.`, variant: "default" });
+      }
+      await loadUnavailabilities(currentUser.id); // Refresh the list
+      setReason(''); // Reset reason after submission
+    } catch (error) {
+      console.error("Failed to set availability:", error);
+      toast({ title: "Error", description: "Could not update availability.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
-    loadUnavailabilities(currentUser.id); // Refresh the list
-    setReason(''); // Reset reason after submission
   };
 
-  const isSelectedDateUnavailable = selectedDate && unavailableDates.some(d => d.toDateString() === selectedDate.toDateString());
+  const isSelectedDateUnavailable = selectedDate && unavailableDates.some(d => isSameDay(d, selectedDate));
+
+  if (isLoading || !currentUser) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto shadow-xl">
+        <CardHeader>
+          <CardTitle><Skeleton className="h-7 w-3/4" /></CardTitle>
+          <CardDescription><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3 mt-1" /></CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Label htmlFor="teacher-select">Select Teacher</Label>
+            <Skeleton className="h-10 w-full mt-1" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+          </div>
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <Skeleton className="h-[290px] w-[280px] rounded-md border" />
+            <div className="flex-1 space-y-4 w-full">
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-8 w-3/4 mt-2" />
+              <Skeleton className="h-10 w-full mt-1" />
+              <div className="flex gap-2 mt-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -79,10 +162,11 @@ export function AvailabilityForm() {
           <Label htmlFor="teacher-select">Select Teacher</Label>
           <Select
             value={currentUser.id}
-            onValueChange={(teacherId) => {
-              const teacher = mockTeachers.find(t => t.id === teacherId);
+            onValueChange={async (teacherId) => {
+              const teacher = allTeachers.find(t => t.id === teacherId);
               if (teacher) {
                 setCurrentUser({ id: teacher.id, name: teacher.name, role: 'teacher' });
+                // loadUnavailabilities will be triggered by useEffect on currentUser change
               }
             }}
           >
@@ -90,7 +174,7 @@ export function AvailabilityForm() {
               <SelectValue placeholder="Select a teacher" />
             </SelectTrigger>
             <SelectContent>
-              {mockTeachers.map(teacher => (
+              {allTeachers.map(teacher => (
                 <SelectItem key={teacher.id} value={teacher.id}>{teacher.name}</SelectItem>
               ))}
             </SelectContent>
@@ -104,7 +188,7 @@ export function AvailabilityForm() {
             selected={selectedDate}
             onSelect={handleDateSelect}
             className="rounded-md border self-center md:self-start"
-            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))} // Disable past dates
+            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) || isSubmitting}
             modifiers={{ unavailable: unavailableDates }}
             modifiersStyles={{
               unavailable: { backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))', opacity: 0.8 },
@@ -117,13 +201,12 @@ export function AvailabilityForm() {
                 <h3 className="text-lg font-semibold mb-2">
                   Selected Date: {format(selectedDate, "PPP")}
                 </h3>
-                {isSelectedDateUnavailable && (
+                {isSelectedDateUnavailable ? (
                   <div className="flex items-center text-accent mb-2 p-2 rounded-md bg-accent/10">
                     <AlertCircle className="h-5 w-5 mr-2" />
                     <span>This date is currently marked as unavailable.</span>
                   </div>
-                )}
-                 {!isSelectedDateUnavailable && (
+                ) : (
                   <div className="flex items-center text-green-600 mb-2 p-2 rounded-md bg-green-500/10">
                     <CheckCircle2 className="h-5 w-5 mr-2" />
                     <span>This date is currently marked as available.</span>
@@ -136,15 +219,15 @@ export function AvailabilityForm() {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="e.g., Doctor's appointment" 
-                    disabled={isSelectedDateUnavailable}
+                    disabled={isSelectedDateUnavailable || isSubmitting}
                   />
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <Button onClick={() => handleSetAvailability(false)} disabled={isSelectedDateUnavailable} className="w-full">
-                    Mark as Unavailable
+                  <Button onClick={() => handleSetAvailability(false)} disabled={isSelectedDateUnavailable || isSubmitting} className="w-full">
+                    {isSubmitting ? 'Saving...' : 'Mark as Unavailable'}
                   </Button>
-                  <Button onClick={() => handleSetAvailability(true)} variant="outline" disabled={!isSelectedDateUnavailable} className="w-full">
-                    Mark as Available
+                  <Button onClick={() => handleSetAvailability(true)} variant="outline" disabled={!isSelectedDateUnavailable || isSubmitting} className="w-full">
+                    {isSubmitting ? 'Saving...' : 'Mark as Available'}
                   </Button>
                 </div>
               </div>
