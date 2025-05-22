@@ -6,23 +6,23 @@ import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TeacherCardProps {
   teacher: Teacher;
 }
 
 export function TeacherCard({ teacher }: TeacherCardProps) {
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  }
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="flex flex-row items-center gap-4">
-        <Image
-          src={teacher.avatarUrl || `https://placehold.co/80x80.png?text=${teacher.name.substring(0,2)}`}
-          alt={teacher.name}
-          width={80}
-          height={80}
-          className="rounded-full border"
-          data-ai-hint="person avatar"
-        />
+        <Avatar className="h-20 w-20">
+            <AvatarImage src={teacher.avatarUrl} alt={teacher.name} data-ai-hint="person avatar" />
+            <AvatarFallback className="text-2xl">{getInitials(teacher.name)}</AvatarFallback>
+        </Avatar>
         <div>
           <CardTitle className="text-xl">{teacher.name}</CardTitle>
           <CardDescription>Especialista en Idiomas</CardDescription>

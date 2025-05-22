@@ -50,3 +50,4 @@ export interface SimulatedUser {
   name: string;
   role: 'teacher';
 }
+

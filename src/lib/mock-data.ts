@@ -1,15 +1,18 @@
 
 import type { Language, Teacher, ClassEvent, Availability, SimulatedUser, Student } from '@/types';
-import { BookOpen, Globe, MessageSquare, Users as UsersIconLucide } from 'lucide-react'; // Renamed to avoid conflict
+import { BookOpen, Globe, MessageSquare, Users as UsersIconLucide, Palette, Film, Music } from 'lucide-react'; // Added more icons for variety
 
 export const mockLanguages: Language[] = [
   { id: 'lang_en', name: 'Inglés', icon: Globe, color: 'hsl(var(--chart-1))' },
   { id: 'lang_es', name: 'Español', icon: MessageSquare, color: 'hsl(var(--chart-2))' },
   { id: 'lang_fr', name: 'Francés', icon: UsersIconLucide, color: 'hsl(var(--chart-3))' },
   { id: 'lang_de', name: 'Alemán', icon: BookOpen, color: 'hsl(var(--chart-4))' },
+  { id: 'lang_it', name: 'Italiano', icon: Palette, color: 'hsl(var(--chart-5))' },
+  { id: 'lang_pt', name: 'Portugués', icon: Film, color: 'hsl(190 60% 50%)' },
+  { id: 'lang_jp', name: 'Japonés', icon: Music, color: 'hsl(300 60% 50%)' },
 ];
 
-export const mockTeachers: Teacher[] = [
+export let mockTeachers: Teacher[] = [
   {
     id: 'teacher_1',
     name: 'Alicia Wonderland',
@@ -26,7 +29,7 @@ export const mockTeachers: Teacher[] = [
     id: 'teacher_3',
     name: 'Carlos Chaplin',
     avatarUrl: 'https://placehold.co/100x100.png?text=CC',
-    languagesTaught: [mockLanguages[0], mockLanguages[3]],
+    languagesTaught: [mockLanguages[0], mockLanguages[3], mockLanguages[4]],
   },
 ];
 
@@ -92,7 +95,7 @@ export let mockEvents: ClassEvent[] = [
     startTime: '16:00',
     endTime: '17:00',
     teacher: mockTeachers[1],
-    language: mockLanguages[3],
+    language: mockLanguages[3], // Corrected, was mockLanguages[3] before as well
     classroom: 'Salón C',
     type: 'special',
     title: 'Jornada de Puertas Abiertas de Alemán',
@@ -120,7 +123,7 @@ export let mockUnavailabilities: Availability[] = [
 
 // --- Student CRUD ---
 export const getStudents = (): Student[] => {
-  return [...mockStudents]; // Return a copy
+  return [...mockStudents];
 };
 
 export const getStudentById = (id: string): Student | undefined => {
@@ -146,13 +149,74 @@ export const updateStudent = (id: string, studentData: Partial<Omit<Student, 'id
 export const deleteStudent = (id: string): boolean => {
   const initialLength = mockStudents.length;
   mockStudents = mockStudents.filter(s => s.id !== id);
-  // Also remove student from any classes they were enrolled in
   mockEvents.forEach(event => {
     if (event.studentIds) {
       event.studentIds = event.studentIds.filter(studentId => studentId !== id);
     }
   });
   return mockStudents.length < initialLength;
+};
+
+// --- Teacher CRUD ---
+export const getTeachers = (): Teacher[] => {
+  return [...mockTeachers];
+};
+
+export const getTeacherById = (id: string): Teacher | undefined => {
+  return mockTeachers.find(t => t.id === id);
+};
+
+const generateAvatarPlaceholder = (name: string): string => {
+    const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    return `https://placehold.co/80x80.png?text=${initials}`;
+}
+
+export const addTeacher = (teacherData: Omit<Teacher, 'id' | 'languagesTaught'> & { languageIds: string[], avatarUrl?: string }): Teacher => {
+  const languages = teacherData.languageIds.map(langId => mockLanguages.find(l => l.id === langId)).filter(Boolean) as Language[];
+  const newTeacher: Teacher = {
+    id: `teacher_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: teacherData.name,
+    avatarUrl: teacherData.avatarUrl || generateAvatarPlaceholder(teacherData.name),
+    languagesTaught: languages,
+  };
+  mockTeachers.push(newTeacher);
+  return newTeacher;
+};
+
+export const updateTeacher = (id: string, teacherData: Partial<Omit<Teacher, 'id' | 'languagesTaught'>> & { languageIds?: string[], avatarUrl?: string }): Teacher | undefined => {
+  const teacherIndex = mockTeachers.findIndex(t => t.id === id);
+  if (teacherIndex === -1) return undefined;
+
+  const currentTeacher = mockTeachers[teacherIndex];
+  let newLanguagesTaught = currentTeacher.languagesTaught;
+  if (teacherData.languageIds) {
+    newLanguagesTaught = teacherData.languageIds.map(langId => mockLanguages.find(l => l.id === langId)).filter(Boolean) as Language[];
+  }
+  
+  const newAvatarUrl = teacherData.avatarUrl === "" ? generateAvatarPlaceholder(teacherData.name || currentTeacher.name) : teacherData.avatarUrl || currentTeacher.avatarUrl;
+
+
+  mockTeachers[teacherIndex] = {
+    ...currentTeacher,
+    ...teacherData,
+    avatarUrl: newAvatarUrl,
+    languagesTaught: newLanguagesTaught,
+  };
+  return mockTeachers[teacherIndex];
+};
+
+export const deleteTeacher = (id: string): boolean => {
+  // Check if teacher is assigned to any class
+  const isTeacherInClass = mockEvents.some(event => event.teacher.id === id);
+  if (isTeacherInClass) {
+    return false; // Cannot delete teacher if they have classes
+  }
+
+  const initialLength = mockTeachers.length;
+  mockTeachers = mockTeachers.filter(t => t.id !== id);
+  // Also remove unavailabilities for this teacher
+  mockUnavailabilities = mockUnavailabilities.filter(ua => ua.teacherId !== id);
+  return mockTeachers.length < initialLength;
 };
 
 
@@ -180,7 +244,16 @@ export const getUnavailabilityForDate = (date: Date, teacherId: string): Availab
 };
 
 export const simulatedUser: SimulatedUser = {
-  id: mockTeachers[0].id, // Alicia Wonderland
-  name: mockTeachers[0].name,
+  id: mockTeachers.length > 0 ? mockTeachers[0].id : 'teacher_fallback',
+  name: mockTeachers.length > 0 ? mockTeachers[0].name : 'Profesor Ejemplo',
   role: 'teacher',
 };
+
+// Ensure simulatedUser is updated if the first teacher changes
+if (mockTeachers.length > 0 && simulatedUser.id !== mockTeachers[0].id) {
+    simulatedUser.id = mockTeachers[0].id;
+    simulatedUser.name = mockTeachers[0].name;
+} else if (mockTeachers.length === 0 && simulatedUser.id !== 'teacher_fallback') {
+    simulatedUser.id = 'teacher_fallback';
+    simulatedUser.name = 'Profesor Ejemplo';
+}
