@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -34,7 +35,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Placeholder for user profile or logout */}
             <Button variant="ghost" className="w-full justify-start gap-2">
               <LogOut className="h-5 w-5" />
-              <span>Logout</span>
+              <span>Cerrar Sesión</span>
             </Button>
           </SidebarFooter>
         </Sidebar>

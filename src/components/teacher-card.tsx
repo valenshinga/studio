@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Teacher } from '@/types';
@@ -24,11 +25,11 @@ export function TeacherCard({ teacher }: TeacherCardProps) {
         />
         <div>
           <CardTitle className="text-xl">{teacher.name}</CardTitle>
-          <CardDescription>Languages Specialist</CardDescription>
+          <CardDescription>Especialista en Idiomas</CardDescription>
         </div>
       </CardHeader>
       <CardContent>
-        <h4 className="mb-2 text-sm font-medium text-muted-foreground">Teaches:</h4>
+        <h4 className="mb-2 text-sm font-medium text-muted-foreground">Enseña:</h4>
         <div className="flex flex-wrap gap-2">
           {teacher.languagesTaught.map((lang) => {
             const LanguageIcon = lang.icon || BookOpen;

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'LinguaCal',
-  description: 'Language Class Scheduling and Management',
+  description: 'Programación y Gestión de Clases de Idiomas',
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es-LA">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AppLayout>
           {children}

@@ -14,6 +14,7 @@ import {
 } from '@/lib/mock-data';
 import type { Availability, SimulatedUser, Teacher } from '@/types';
 import { format, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,7 +56,7 @@ export function AvailabilityForm() {
       const existingUnavailability = unavailableDates.find(
         d => isSameDay(d, date)
       );
-      setReason(''); // Clear reason as it might be from a different selection or not easily accessible
+      setReason(''); 
     } else {
       setReason('');
     }
@@ -63,24 +64,24 @@ export function AvailabilityForm() {
 
   const handleSetAvailability = (available: boolean) => {
     if (!selectedDate || !currentUser) {
-      toast({ title: "No date/user selected", description: "Please select a date and ensure user is loaded.", variant: "destructive" });
+      toast({ title: "No se seleccionó fecha/usuario", description: "Por favor, selecciona una fecha y asegúrate de que el usuario esté cargado.", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (!available) { // Setting as unavailable
+      if (!available) { 
         addUnavailability({ teacherId: currentUser.id, date: selectedDate, isUnavailable: true, reason });
-        toast({ title: "Date marked as unavailable", description: `${format(selectedDate, 'PPP')} is now unavailable.`, variant: "default" });
-      } else { // Setting as available
+        toast({ title: "Fecha marcada como no disponible", description: `${format(selectedDate, 'PPP', { locale: es })} ahora no está disponible.`, variant: "default" });
+      } else { 
         removeUnavailability(selectedDate, currentUser.id);
-        toast({ title: "Date marked as available", description: `${format(selectedDate, 'PPP')} is now available.`, variant: "default" });
+        toast({ title: "Fecha marcada como disponible", description: `${format(selectedDate, 'PPP', { locale: es })} ahora está disponible.`, variant: "default" });
       }
-      loadUnavailabilities(currentUser.id); // Refresh the list
-      setReason(''); // Reset reason after submission
+      loadUnavailabilities(currentUser.id); 
+      setReason(''); 
     } catch (error) {
-      console.error("Failed to set availability:", error);
-      toast({ title: "Error", description: "Could not update availability.", variant: "destructive" });
+      console.error("Error al establecer disponibilidad:", error);
+      toast({ title: "Error", description: "No se pudo actualizar la disponibilidad.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -89,11 +90,10 @@ export function AvailabilityForm() {
   const isSelectedDateUnavailable = selectedDate && unavailableDates.some(d => isSameDay(d, selectedDate));
 
   if (!currentUser) {
-    // Basic loading state or message if current user isn't immediately available
     return (
         <Card className="w-full max-w-2xl mx-auto shadow-xl">
-            <CardHeader><CardTitle>Loading User...</CardTitle></CardHeader>
-            <CardContent><p>Please wait while user data is being loaded.</p></CardContent>
+            <CardHeader><CardTitle>Cargando Usuario...</CardTitle></CardHeader>
+            <CardContent><p>Por favor, espera mientras se cargan los datos del usuario.</p></CardContent>
         </Card>
     );
   }
@@ -102,26 +102,25 @@ export function AvailabilityForm() {
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle>Manage Your Availability</CardTitle>
+        <CardTitle>Gestiona Tu Disponibilidad</CardTitle>
         <CardDescription>
-          Select a teacher and dates to mark them as unavailable. These will reflect on the main calendar.
+          Selecciona un profesor y fechas para marcarlas como no disponibles. Esto se reflejará en el calendario principal.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <Label htmlFor="teacher-select">Select Teacher</Label>
+          <Label htmlFor="teacher-select">Seleccionar Profesor</Label>
           <Select
             value={currentUser.id}
             onValueChange={(teacherId) => {
               const teacher = allTeachers.find(t => t.id === teacherId);
               if (teacher) {
                 setCurrentUser({ id: teacher.id, name: teacher.name, role: 'teacher' });
-                // loadUnavailabilities will be triggered by useEffect on currentUser change
               }
             }}
           >
             <SelectTrigger id="teacher-select">
-              <SelectValue placeholder="Select a teacher" />
+              <SelectValue placeholder="Selecciona un profesor" />
             </SelectTrigger>
             <SelectContent>
               {allTeachers.map(teacher => (
@@ -129,7 +128,7 @@ export function AvailabilityForm() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-muted-foreground mt-1">Currently managing availability for: {currentUser.name}</p>
+          <p className="text-sm text-muted-foreground mt-1">Actualmente gestionando disponibilidad para: {currentUser.name}</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -144,40 +143,41 @@ export function AvailabilityForm() {
               unavailable: { backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))', opacity: 0.8 },
               selected: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
             }}
+            locale={es}
           />
           <div className="flex-1 space-y-4 w-full">
             {selectedDate && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">
-                  Selected Date: {format(selectedDate, "PPP")}
+                  Fecha Seleccionada: {format(selectedDate, "PPP", { locale: es })}
                 </h3>
                 {isSelectedDateUnavailable ? (
                   <div className="flex items-center text-accent mb-2 p-2 rounded-md bg-accent/10">
                     <AlertCircle className="h-5 w-5 mr-2" />
-                    <span>This date is currently marked as unavailable.</span>
+                    <span>Esta fecha está actualmente marcada como no disponible.</span>
                   </div>
                 ) : (
                   <div className="flex items-center text-green-600 mb-2 p-2 rounded-md bg-green-500/10">
                     <CheckCircle2 className="h-5 w-5 mr-2" />
-                    <span>This date is currently marked as available.</span>
+                    <span>Esta fecha está actualmente marcada como disponible.</span>
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="reason">Reason for unavailability (optional)</Label>
+                  <Label htmlFor="reason">Motivo de indisponibilidad (opcional)</Label>
                   <Textarea 
                     id="reason"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="e.g., Doctor's appointment" 
+                    placeholder="Ej: Cita médica" 
                     disabled={isSelectedDateUnavailable || isSubmitting}
                   />
                 </div>
                 <div className="flex gap-2 mt-4">
                   <Button onClick={() => handleSetAvailability(false)} disabled={isSelectedDateUnavailable || isSubmitting} className="w-full">
-                    {isSubmitting ? 'Saving...' : 'Mark as Unavailable'}
+                    {isSubmitting ? 'Guardando...' : 'Marcar como No Disponible'}
                   </Button>
                   <Button onClick={() => handleSetAvailability(true)} variant="outline" disabled={!isSelectedDateUnavailable || isSubmitting} className="w-full">
-                    {isSubmitting ? 'Saving...' : 'Mark as Available'}
+                    {isSubmitting ? 'Guardando...' : 'Marcar como Disponible'}
                   </Button>
                 </div>
               </div>

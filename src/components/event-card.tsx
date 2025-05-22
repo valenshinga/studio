@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ClassEvent } from '@/types';
@@ -11,6 +12,19 @@ interface EventCardProps {
   isConflict?: boolean;
 }
 
+const translateEventType = (type: ClassEvent['type']): string => {
+  switch (type) {
+    case 'class':
+      return 'Clase';
+    case 'unavailable':
+      return 'No Disponible';
+    case 'special':
+      return 'Especial';
+    default:
+      return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+};
+
 export function EventCard({ event, isConflict = false }: EventCardProps) {
   const LanguageIcon = event.language.icon || BookOpen;
 
@@ -21,7 +35,7 @@ export function EventCard({ event, isConflict = false }: EventCardProps) {
     event.type === 'unavailable' && "border-muted-foreground bg-muted/50"
   );
 
-  const title = event.title || `${event.language.name} with ${event.teacher.name}`;
+  const title = event.title || `${event.language.name} con ${event.teacher.name}`;
 
   return (
     <Card className={cardClasses}>
@@ -33,7 +47,7 @@ export function EventCard({ event, isConflict = false }: EventCardProps) {
           {isConflict && <AlertTriangle className="h-5 w-5 text-destructive" />}
         </div>
         <CardDescription className={cn(isConflict && "text-destructive-foreground/80")}>
-          {event.type === 'unavailable' ? `Teacher Unavailable: ${event.teacher.name}` : `${event.startTime} - ${event.endTime}`}
+          {event.type === 'unavailable' ? `Profesor(a) No Disponible: ${event.teacher.name}` : `${event.startTime} - ${event.endTime}`}
         </CardDescription>
       </CardHeader>
       {event.type !== 'unavailable' && (
@@ -55,7 +69,7 @@ export function EventCard({ event, isConflict = false }: EventCardProps) {
           )}
           <div className="pt-2">
             <Badge variant={isConflict ? "destructive" : event.type === 'special' ? "default" : "secondary"} className={cn(event.type === 'special' && !isConflict && "bg-accent text-accent-foreground")}>
-              {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+              {translateEventType(event.type)}
             </Badge>
           </div>
         </CardContent>

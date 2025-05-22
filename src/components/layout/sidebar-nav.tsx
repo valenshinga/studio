@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -11,9 +12,9 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  { href: '/', label: 'Calendar', icon: CalendarDays },
-  { href: '/teachers', label: 'Teachers', icon: Users },
-  { href: '/availability', label: 'My Availability', icon: UserCog },
+  { href: '/', label: 'Calendario', icon: CalendarDays },
+  { href: '/teachers', label: 'Profesores', icon: Users },
+  { href: '/availability', label: 'Mi Disponibilidad', icon: UserCog },
 ];
 
 export function SidebarNav() {

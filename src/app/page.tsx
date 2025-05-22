@@ -8,6 +8,7 @@ import { FilterControls, type CalendarFilters } from "@/components/filter-contro
 import { mockEvents, mockUnavailabilities, getUnavailabilityForDate } from '@/lib/mock-data';
 import type { ClassEvent, Availability, Teacher } from '@/types';
 import { format, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -50,20 +51,20 @@ export default function CalendarPage() {
         
         const teacherData: Teacher = teacherInvolved || {
             id: ua.teacherId, 
-            name: `Teacher ${ua.teacherId.substring(ua.teacherId.length - 2)}`, 
+            name: `Profesor ${ua.teacherId.substring(ua.teacherId.length - 2)}`, 
             languagesTaught:[]
         };
 
         return {
           id: ua.id,
           date: ua.date,
-          startTime: "All Day",
+          startTime: "Todo el día",
           endTime: "",
           teacher: teacherData,
-          language: {id: 'unavail', name: 'Unavailable'},
+          language: {id: 'unavail', name: 'No disponible'},
           classroom: '-',
           type: 'unavailable' as 'unavailable',
-          description: ua.reason || "Marked as unavailable",
+          description: ua.reason || "Marcado como no disponible",
         };
       });
     
@@ -125,8 +126,8 @@ export default function CalendarPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-2xl">Calendar</CardTitle>
-            <CardDescription>Select a date to view events.</CardDescription>
+            <CardTitle className="text-2xl">Calendario</CardTitle>
+            <CardDescription>Selecciona una fecha para ver los eventos.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center p-0 sm:p-2 md:p-4">
             <Calendar
@@ -136,6 +137,7 @@ export default function CalendarPage() {
               className="rounded-md"
               modifiers={calendarModifiers}
               modifiersStyles={calendarModifierStyles}
+              locale={es}
             />
           </CardContent>
         </Card>
@@ -143,10 +145,10 @@ export default function CalendarPage() {
         <Card className="lg:col-span-2 shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl">
-              Events for {selectedDate ? format(selectedDate, 'PPP') : 'No date selected'}
+              Eventos para {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : 'ninguna fecha seleccionada'}
             </CardTitle>
             <CardDescription>
-              Scheduled classes and teacher unavailabilities for the selected day.
+              Clases programadas e indisponibilidades de profesores para el día seleccionado.
             </CardDescription>
           </CardHeader>
           <Separator className="mb-4"/>
@@ -163,8 +165,8 @@ export default function CalendarPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center py-10">
                   <CalendarCheck2 className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">No events scheduled for this day.</p>
-                  <p className="text-sm text-muted-foreground">Try selecting another date or adjusting filters.</p>
+                  <p className="text-lg font-medium text-muted-foreground">No hay eventos programados para este día.</p>
+                  <p className="text-sm text-muted-foreground">Intenta seleccionar otra fecha o ajustar los filtros.</p>
                 </div>
               )}
             </ScrollArea>

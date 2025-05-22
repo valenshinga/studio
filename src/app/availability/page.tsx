@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AvailabilityForm } from '@/components/availability-form';
@@ -10,9 +11,9 @@ export default function AvailabilityPage() {
         <div className="inline-flex items-center justify-center bg-primary/10 text-primary p-3 rounded-full mb-4">
            <UserCog className="h-10 w-10" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight">Manage Availability</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Gestionar Disponibilidad</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Update your schedule to ensure accurate class planning.
+          Actualiza tu horario para asegurar una planificación precisa de las clases.
         </p>
       </div>
       <AvailabilityForm />

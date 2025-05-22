@@ -2,28 +2,28 @@ import type { Language, Teacher, ClassEvent, Availability, SimulatedUser } from 
 import { BookOpen, Globe, MessageSquare, Users } from 'lucide-react';
 
 export const mockLanguages: Language[] = [
-  { id: 'lang_en', name: 'English', icon: Globe, color: 'hsl(var(--chart-1))' },
-  { id: 'lang_es', name: 'Spanish', icon: MessageSquare, color: 'hsl(var(--chart-2))' },
-  { id: 'lang_fr', name: 'French', icon: Users, color: 'hsl(var(--chart-3))' },
-  { id: 'lang_de', name: 'German', icon: BookOpen, color: 'hsl(var(--chart-4))' },
+  { id: 'lang_en', name: 'Inglés', icon: Globe, color: 'hsl(var(--chart-1))' },
+  { id: 'lang_es', name: 'Español', icon: MessageSquare, color: 'hsl(var(--chart-2))' },
+  { id: 'lang_fr', name: 'Francés', icon: Users, color: 'hsl(var(--chart-3))' },
+  { id: 'lang_de', name: 'Alemán', icon: BookOpen, color: 'hsl(var(--chart-4))' },
 ];
 
 export const mockTeachers: Teacher[] = [
   {
     id: 'teacher_1',
-    name: 'Alice Wonderland',
+    name: 'Alicia Wonderland',
     avatarUrl: 'https://placehold.co/100x100.png?text=AW',
     languagesTaught: [mockLanguages[0], mockLanguages[1]],
   },
   {
     id: 'teacher_2',
-    name: 'Bob The Builder',
-    avatarUrl: 'https://placehold.co/100x100.png?text=BB',
+    name: 'Roberto Constructor',
+    avatarUrl: 'https://placehold.co/100x100.png?text=RC',
     languagesTaught: [mockLanguages[2], mockLanguages[3]],
   },
   {
     id: 'teacher_3',
-    name: 'Charlie Chaplin',
+    name: 'Carlos Chaplin',
     avatarUrl: 'https://placehold.co/100x100.png?text=CC',
     languagesTaught: [mockLanguages[0], mockLanguages[3]],
   },
@@ -37,9 +37,9 @@ export const mockEvents: ClassEvent[] = [
     endTime: '10:30',
     teacher: mockTeachers[0],
     language: mockLanguages[0],
-    classroom: 'Room A',
+    classroom: 'Salón A',
     type: 'class',
-    title: 'Beginner English with Alice',
+    title: 'Inglés Principiante con Alicia',
   },
   {
     id: 'event_2',
@@ -48,9 +48,9 @@ export const mockEvents: ClassEvent[] = [
     endTime: '12:30',
     teacher: mockTeachers[1],
     language: mockLanguages[2],
-    classroom: 'Room B',
+    classroom: 'Salón B',
     type: 'class',
-    title: 'Intermediate French with Bob',
+    title: 'Francés Intermedio con Roberto',
   },
   {
     id: 'event_3',
@@ -59,9 +59,9 @@ export const mockEvents: ClassEvent[] = [
     endTime: '15:30',
     teacher: mockTeachers[0],
     language: mockLanguages[1],
-    classroom: 'Room A',
+    classroom: 'Salón A',
     type: 'class',
-    title: 'Advanced Spanish with Alice',
+    title: 'Español Avanzado con Alicia',
   },
   {
     id: 'event_4',
@@ -70,39 +70,38 @@ export const mockEvents: ClassEvent[] = [
     endTime: '11:30',
     teacher: mockTeachers[2],
     language: mockLanguages[3],
-    classroom: 'Online',
+    classroom: 'En línea',
     type: 'class',
-    title: 'German Conversation with Charlie',
+    title: 'Conversación en Alemán con Carlos',
   },
   {
-    id: 'event_5', // Example of a special event using accent color
+    id: 'event_5', 
     date: new Date(new Date().setDate(new Date().getDate() + 5)),
     startTime: '16:00',
     endTime: '17:00',
     teacher: mockTeachers[1],
     language: mockLanguages[3],
-    classroom: 'Room C',
+    classroom: 'Salón C',
     type: 'special',
-    title: 'German Open House',
-    description: 'Special event to showcase German courses.'
+    title: 'Jornada de Puertas Abiertas de Alemán',
+    description: 'Evento especial para mostrar los cursos de alemán.'
   },
 ];
 
-// Mutable store for unavailabilities for demo purposes
 export let mockUnavailabilities: Availability[] = [
   {
     id: 'unavail_1',
     teacherId: mockTeachers[0].id,
     date: new Date(new Date().setDate(new Date().getDate() + 4)),
     isUnavailable: true,
-    reason: 'Personal Appointment',
+    reason: 'Cita Personal',
   },
   {
-    id: 'unavail_2', // This will conflict with event_4 if teacher_2 teaches it
+    id: 'unavail_2', 
     teacherId: mockTeachers[2].id,
     date: new Date(new Date().setDate(new Date().getDate() + 3)),
     isUnavailable: true,
-    reason: 'Conference',
+    reason: 'Conferencia',
   }
 ];
 
@@ -128,9 +127,8 @@ export const getUnavailabilityForDate = (date: Date, teacherId: string): Availab
   );
 };
 
-// Simulate a logged-in user (teacher)
 export const simulatedUser: SimulatedUser = {
-  id: mockTeachers[0].id, // Alice Wonderland
+  id: mockTeachers[0].id, // Alicia Wonderland
   name: mockTeachers[0].name,
   role: 'teacher',
 };
