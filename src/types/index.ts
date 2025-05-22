@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface Language {
@@ -14,6 +15,12 @@ export interface Teacher {
   languagesTaught: Language[];
 }
 
+export interface Student {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export type EventType = 'class' | 'unavailable' | 'special';
 
 export interface ClassEvent {
@@ -27,10 +34,11 @@ export interface ClassEvent {
   classroom: string;
   type: EventType;
   description?: string;
+  studentIds?: string[]; // Array of student IDs enrolled in this class
 }
 
 export interface Availability {
-  id: string;
+  id:string;
   teacherId: string;
   date: Date;
   isUnavailable: boolean;

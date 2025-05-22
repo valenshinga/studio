@@ -4,7 +4,7 @@
 import type { ClassEvent } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Home, BookOpen, AlertTriangle } from 'lucide-react';
+import { Clock, User, Home, BookOpen, AlertTriangle, Users as UsersIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EventCardProps {
@@ -36,6 +36,7 @@ export function EventCard({ event, isConflict = false }: EventCardProps) {
   );
 
   const title = event.title || `${event.language.name} con ${event.teacher.name}`;
+  const studentCount = event.studentIds?.length || 0;
 
   return (
     <Card className={cardClasses}>
@@ -64,6 +65,12 @@ export function EventCard({ event, isConflict = false }: EventCardProps) {
             <Home className="h-4 w-4 text-muted-foreground" />
             <span>{event.classroom}</span>
           </div>
+          {studentCount > 0 && event.type === 'class' && (
+            <div className="flex items-center gap-2">
+              <UsersIcon className="h-4 w-4 text-muted-foreground" />
+              <span>{studentCount} alumno{studentCount > 1 ? 's' : ''}</span>
+            </div>
+          )}
           {event.description && (
             <p className="text-xs text-muted-foreground pt-1">{event.description}</p>
           )}

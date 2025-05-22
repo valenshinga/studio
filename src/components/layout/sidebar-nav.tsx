@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, Users, UserCog } from 'lucide-react';
+import { CalendarDays, Users, UserCog, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   SidebarMenu,
@@ -14,6 +14,7 @@ import {
 const navItems = [
   { href: '/', label: 'Calendario', icon: CalendarDays },
   { href: '/teachers', label: 'Profesores', icon: Users },
+  { href: '/students', label: 'Alumnos', icon: GraduationCap },
   { href: '/availability', label: 'Mi Disponibilidad', icon: UserCog },
 ];
 
