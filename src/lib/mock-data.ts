@@ -1,6 +1,7 @@
 
-import type { Language, Teacher, ClassEvent, Availability, SimulatedUser, Student } from '@/types';
+import type { Language, Teacher, ClassEvent, Availability, SimulatedUser, Student, EventType } from '@/types';
 import { BookOpen, Globe, MessageSquare, Users as UsersIconLucide, Palette, Film, Music } from 'lucide-react'; // Added more icons for variety
+import { format } from 'date-fns';
 
 export const mockLanguages: Language[] = [
   { id: 'lang_en', name: 'Inglés', icon: Globe, color: 'hsl(var(--chart-1))' },
@@ -48,7 +49,10 @@ export let mockEvents: ClassEvent[] = [
     endTime: '10:30',
     teacher: mockTeachers[0],
     language: mockLanguages[0],
+    teacherId: mockTeachers[0].id,
+    languageId: mockLanguages[0].id,
     classroom: 'Salón A',
+    classroomId: 'Salón A',
     type: 'class',
     title: 'Inglés Principiante con Alicia',
     studentIds: [mockStudents[0].id, mockStudents[1].id],
@@ -60,7 +64,10 @@ export let mockEvents: ClassEvent[] = [
     endTime: '12:30',
     teacher: mockTeachers[1],
     language: mockLanguages[2],
+    teacherId: mockTeachers[1].id,
+    languageId: mockLanguages[2].id,
     classroom: 'Salón B',
+    classroomId: 'Salón B',
     type: 'class',
     title: 'Francés Intermedio con Roberto',
     studentIds: [mockStudents[2].id],
@@ -72,7 +79,10 @@ export let mockEvents: ClassEvent[] = [
     endTime: '15:30',
     teacher: mockTeachers[0],
     language: mockLanguages[1],
+    teacherId: mockTeachers[0].id,
+    languageId: mockLanguages[1].id,
     classroom: 'Salón A',
+    classroomId: 'Salón A',
     type: 'class',
     title: 'Español Avanzado con Alicia',
     studentIds: [mockStudents[0].id, mockStudents[3].id],
@@ -84,7 +94,10 @@ export let mockEvents: ClassEvent[] = [
     endTime: '11:30',
     teacher: mockTeachers[2],
     language: mockLanguages[3],
+    teacherId: mockTeachers[2].id,
+    languageId: mockLanguages[3].id,
     classroom: 'En línea',
+    classroomId: 'En línea',
     type: 'class',
     title: 'Conversación en Alemán con Carlos',
     studentIds: [mockStudents[1].id, mockStudents[2].id, mockStudents[3].id],
@@ -95,8 +108,11 @@ export let mockEvents: ClassEvent[] = [
     startTime: '16:00',
     endTime: '17:00',
     teacher: mockTeachers[1],
-    language: mockLanguages[3], // Corrected, was mockLanguages[3] before as well
+    language: mockLanguages[3], 
+    teacherId: mockTeachers[1].id,
+    languageId: mockLanguages[3].id,
     classroom: 'Salón C',
+    classroomId: 'Salón C',
     type: 'special',
     title: 'Jornada de Puertas Abiertas de Alemán',
     description: 'Evento especial para mostrar los cursos de alemán.',
@@ -149,6 +165,7 @@ export const updateStudent = (id: string, studentData: Partial<Omit<Student, 'id
 export const deleteStudent = (id: string): boolean => {
   const initialLength = mockStudents.length;
   mockStudents = mockStudents.filter(s => s.id !== id);
+  // Remove student from any classes they were enrolled in
   mockEvents.forEach(event => {
     if (event.studentIds) {
       event.studentIds = event.studentIds.filter(studentId => studentId !== id);
@@ -202,21 +219,83 @@ export const updateTeacher = (id: string, teacherData: Partial<Omit<Teacher, 'id
     avatarUrl: newAvatarUrl,
     languagesTaught: newLanguagesTaught,
   };
+  // Update teacher info in existing events
+  mockEvents = mockEvents.map(event => 
+    event.teacher.id === id ? { ...event, teacher: mockTeachers[teacherIndex] } : event
+  );
   return mockTeachers[teacherIndex];
 };
 
 export const deleteTeacher = (id: string): boolean => {
-  // Check if teacher is assigned to any class
   const isTeacherInClass = mockEvents.some(event => event.teacher.id === id);
   if (isTeacherInClass) {
-    return false; // Cannot delete teacher if they have classes
+    return false; 
   }
-
   const initialLength = mockTeachers.length;
   mockTeachers = mockTeachers.filter(t => t.id !== id);
-  // Also remove unavailabilities for this teacher
   mockUnavailabilities = mockUnavailabilities.filter(ua => ua.teacherId !== id);
   return mockTeachers.length < initialLength;
+};
+
+// --- ClassEvent (Class) CRUD ---
+export type ClassEventFormData = Omit<ClassEvent, 'id' | 'teacher' | 'language' | 'classroom'> & {
+  classroomId: string; // Using classroom as ID for simplicity, could be distinct
+};
+
+export const addClassEvent = (data: ClassEventFormData): ClassEvent => {
+  const teacher = getTeacherById(data.teacherId);
+  const language = mockLanguages.find(l => l.id === data.languageId);
+
+  if (!teacher || !language) {
+    throw new Error("Profesor o Idioma no válido.");
+  }
+  // Validate if teacher can teach the language
+  if (!teacher.languagesTaught.some(lang => lang.id === language.id)) {
+    throw new Error(`El profesor ${teacher.name} no enseña ${language.name}.`);
+  }
+
+  const newClassEvent: ClassEvent = {
+    ...data,
+    id: `event_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    teacher,
+    language,
+    classroom: data.classroomId, // Using classroomId as the display name for now
+  };
+  mockEvents.push(newClassEvent);
+  return newClassEvent;
+};
+
+export const updateClassEvent = (id: string, data: Partial<ClassEventFormData>): ClassEvent | undefined => {
+  const eventIndex = mockEvents.findIndex(event => event.id === id);
+  if (eventIndex === -1) return undefined;
+
+  const currentEvent = mockEvents[eventIndex];
+  const teacher = data.teacherId ? getTeacherById(data.teacherId) : currentEvent.teacher;
+  const language = data.languageId ? mockLanguages.find(l => l.id === data.languageId) : currentEvent.language;
+
+  if (!teacher || !language) {
+    throw new Error("Profesor o Idioma no válido para la actualización.");
+  }
+  if (data.teacherId || data.languageId) { // Validate only if teacher or language is changing
+    if (!teacher.languagesTaught.some(lang => lang.id === language.id)) {
+      throw new Error(`El profesor ${teacher.name} no enseña ${language.name}.`);
+    }
+  }
+
+  mockEvents[eventIndex] = {
+    ...currentEvent,
+    ...data,
+    teacher,
+    language,
+    classroom: data.classroomId || currentEvent.classroom,
+  };
+  return mockEvents[eventIndex];
+};
+
+export const deleteClassEvent = (id: string): boolean => {
+  const initialLength = mockEvents.length;
+  mockEvents = mockEvents.filter(event => event.id !== id);
+  return mockEvents.length < initialLength;
 };
 
 
@@ -249,7 +328,6 @@ export const simulatedUser: SimulatedUser = {
   role: 'teacher',
 };
 
-// Ensure simulatedUser is updated if the first teacher changes
 if (mockTeachers.length > 0 && simulatedUser.id !== mockTeachers[0].id) {
     simulatedUser.id = mockTeachers[0].id;
     simulatedUser.name = mockTeachers[0].name;

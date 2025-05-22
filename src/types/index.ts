@@ -29,10 +29,13 @@ export interface ClassEvent {
   date: Date;
   startTime: string; // e.g., "09:00"
   endTime: string; // e.g., "10:30"
-  teacher: Teacher;
-  language: Language;
-  classroom: string;
-  type: EventType;
+  teacher: Teacher; // For display and existing structure
+  language: Language; // For display and existing structure
+  teacherId: string; // For form binding
+  languageId: string; // For form binding
+  classroomId: string; // Assuming classroom is identified by a string name for now
+  classroom: string; // Display name, can be same as classroomId if simple
+  type: Extract<EventType, 'class' | 'special'>; // 'unavailable' is handled separately
   description?: string;
   studentIds?: string[]; // Array of student IDs enrolled in this class
 }
@@ -50,4 +53,3 @@ export interface SimulatedUser {
   name: string;
   role: 'teacher';
 }
-
