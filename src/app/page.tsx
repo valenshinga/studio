@@ -5,59 +5,32 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { EventCard } from "@/components/event-card";
 import { FilterControls, type CalendarFilters } from "@/components/filter-controls";
-import { getEventsService, getUnavailabilitiesService } from '@/lib/data-service';
+import { mockEvents, mockUnavailabilities, getUnavailabilityForDate } from '@/lib/mock-data';
 import type { ClassEvent, Availability, Teacher } from '@/types';
 import { format, isSameDay } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, CalendarCheck2 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CalendarCheck2 } from 'lucide-react';
+
+// Directly use mock data
+const allEvents: ClassEvent[] = mockEvents;
+const allUnavailabilities: Availability[] = mockUnavailabilities;
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [filters, setFilters] = useState<CalendarFilters>({
     highlightConflicts: true,
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [allEvents, setAllEvents] = useState<ClassEvent[]>([]);
-  const [allUnavailabilities, setAllUnavailabilities] = useState<Availability[]>([]);
 
   useEffect(() => {
     if (!selectedDate) {
       setSelectedDate(new Date());
     }
   }, [selectedDate]);
-
-  useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
-      try {
-        const [eventsData, unavailabilitiesData] = await Promise.all([
-          getEventsService(),
-          getUnavailabilitiesService(),
-        ]);
-        setAllEvents(eventsData);
-        setAllUnavailabilities(unavailabilitiesData);
-      } catch (error) {
-        console.error("Failed to fetch calendar data:", error);
-        // Optionally, set an error state and display a message to the user
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchData();
-  }, []); // Fetch once on mount
-
-  // Helper function to get unavailability for a date and teacher from the state
-  const getUnavailabilityForDateFromState = (date: Date, teacherId: string): Availability | undefined => {
-    return allUnavailabilities.find(
-      (ua) => ua.teacherId === teacherId && isSameDay(ua.date, date) && ua.isUnavailable
-    );
-  };
   
   const dailyEventsAndUnavailabilities = useMemo(() => {
-    if (!selectedDate || isLoading) return [];
+    if (!selectedDate) return [];
 
     const dayEvents = allEvents.filter(event =>
       isSameDay(event.date, selectedDate) &&
@@ -72,9 +45,8 @@ export default function CalendarPage() {
         (!filters.teacherId || ua.teacherId === filters.teacherId)
       )
       .map(ua => {
-        // Try to find teacher info from the fetched events (more robust would be a separate teacher fetch if needed)
         const teacherInvolved = allEvents.find(e => e.teacher.id === ua.teacherId)?.teacher || 
-                                allEvents.find(e => e.id.includes(ua.teacherId))?.teacher; // Basic fallback
+                                allEvents.find(e => e.id.includes(ua.teacherId))?.teacher; 
         
         const teacherData: Teacher = teacherInvolved || {
             id: ua.teacherId, 
@@ -101,11 +73,11 @@ export default function CalendarPage() {
       return a.startTime.localeCompare(b.startTime);
     });
 
-  }, [selectedDate, filters, allEvents, allUnavailabilities, isLoading]);
+  }, [selectedDate, filters]);
 
   const isEventConflict = (event: ClassEvent): boolean => {
     if (event.type !== 'class' && event.type !== 'special') return false;
-    const teacherUnavailability = getUnavailabilityForDateFromState(event.date, event.teacher.id);
+    const teacherUnavailability = getUnavailabilityForDate(event.date, event.teacher.id);
     return !!teacherUnavailability;
   };
   
@@ -124,7 +96,7 @@ export default function CalendarPage() {
       unavailable: unavailableDays,
       conflict: filters.highlightConflicts ? conflictDays : [],
     };
-  }, [filters.teacherId, filters.highlightConflicts, allEvents, allUnavailabilities, isEventConflict]);
+  }, [filters.teacherId, filters.highlightConflicts]);
 
   const calendarModifierStyles = {
     event: { 
@@ -145,25 +117,6 @@ export default function CalendarPage() {
       fontWeight: 'bold',
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-2">
-        <Card className="mb-6 shadow-sm"><CardContent className="p-4"><Skeleton className="h-10 w-1/2" /></CardContent></Card>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 shadow-lg">
-            <CardHeader><CardTitle><Skeleton className="h-8 w-3/4" /></CardTitle><CardDescription><Skeleton className="h-4 w-1/2" /></CardDescription></CardHeader>
-            <CardContent className="flex justify-center p-0 sm:p-2 md:p-4"><Skeleton className="h-[290px] w-[260px] rounded-md" /></CardContent>
-          </Card>
-          <Card className="lg:col-span-2 shadow-lg">
-            <CardHeader><CardTitle><Skeleton className="h-8 w-3/4" /></CardTitle><CardDescription><Skeleton className="h-4 w-1/2" /></CardDescription></CardHeader>
-            <Separator className="mb-4"/>
-            <CardContent><Skeleton className="h-[calc(100vh-20rem)] w-full" /></CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-2">

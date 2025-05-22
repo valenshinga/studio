@@ -6,12 +6,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  getTeacherUnavailabilitiesService, 
-  addAvailabilityEntryService, 
-  removeAvailabilityEntryService,
-  getCurrentSimulatedUserService,
-  getTeachersService
-} from '@/lib/data-service';
+  simulatedUser,
+  mockTeachers,
+  getUnavailabilitiesForTeacher,
+  addUnavailability,
+  removeUnavailability,
+} from '@/lib/mock-data';
 import type { Availability, SimulatedUser, Teacher } from '@/types';
 import { format, isSameDay } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,50 +25,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from '@/components/ui/skeleton';
+
+const allTeachersData: Teacher[] = mockTeachers;
 
 export function AvailabilityForm() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [reason, setReason] = useState('');
-  const [currentUser, setCurrentUser] = useState<SimulatedUser | null>(null);
-  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
+  const [currentUser, setCurrentUser] = useState<SimulatedUser | null>(simulatedUser);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>(allTeachersData);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function fetchInitialData() {
-      setIsLoading(true);
-      try {
-        const [user, teachers] = await Promise.all([
-          getCurrentSimulatedUserService(),
-          getTeachersService()
-        ]);
-        setCurrentUser(user);
-        setAllTeachers(teachers);
-        if (user) {
-          await loadUnavailabilities(user.id);
-        }
-      } catch (error) {
-        console.error("Failed to fetch initial availability data:", error);
-        toast({ title: "Error", description: "Could not load initial data.", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchInitialData();
-  }, []);
-
-  const loadUnavailabilities = async (teacherId: string) => {
-    try {
-      const unavailabilities = await getTeacherUnavailabilitiesService(teacherId);
-      const dates = unavailabilities.map(ua => ua.date);
-      setUnavailableDates(dates);
-    } catch (error) {
-      console.error("Failed to load unavailabilities:", error);
-      toast({ title: "Error", description: "Could not load unavailabilities.", variant: "destructive" });
-    }
+  const loadUnavailabilities = (teacherId: string) => {
+    const unavailabilities = getUnavailabilitiesForTeacher(teacherId);
+    const dates = unavailabilities.map(ua => ua.date);
+    setUnavailableDates(dates);
   };
   
   useEffect(() => {
@@ -83,15 +55,13 @@ export function AvailabilityForm() {
       const existingUnavailability = unavailableDates.find(
         d => isSameDay(d, date)
       );
-      // To get the reason, we'd ideally fetch the full Availability object or have it in state
-      // For now, if it's unavailable, we clear reason as it might be from a different selection.
-      setReason(existingUnavailability ? '' : ''); // Simplified for now
+      setReason(''); // Clear reason as it might be from a different selection or not easily accessible
     } else {
       setReason('');
     }
   };
 
-  const handleSetAvailability = async (available: boolean) => {
+  const handleSetAvailability = (available: boolean) => {
     if (!selectedDate || !currentUser) {
       toast({ title: "No date/user selected", description: "Please select a date and ensure user is loaded.", variant: "destructive" });
       return;
@@ -100,13 +70,13 @@ export function AvailabilityForm() {
     setIsSubmitting(true);
     try {
       if (!available) { // Setting as unavailable
-        await addAvailabilityEntryService({ teacherId: currentUser.id, date: selectedDate, isUnavailable: true, reason });
+        addUnavailability({ teacherId: currentUser.id, date: selectedDate, isUnavailable: true, reason });
         toast({ title: "Date marked as unavailable", description: `${format(selectedDate, 'PPP')} is now unavailable.`, variant: "default" });
       } else { // Setting as available
-        await removeAvailabilityEntryService(selectedDate, currentUser.id);
+        removeUnavailability(selectedDate, currentUser.id);
         toast({ title: "Date marked as available", description: `${format(selectedDate, 'PPP')} is now available.`, variant: "default" });
       }
-      await loadUnavailabilities(currentUser.id); // Refresh the list
+      loadUnavailabilities(currentUser.id); // Refresh the list
       setReason(''); // Reset reason after submission
     } catch (error) {
       console.error("Failed to set availability:", error);
@@ -118,36 +88,16 @@ export function AvailabilityForm() {
 
   const isSelectedDateUnavailable = selectedDate && unavailableDates.some(d => isSameDay(d, selectedDate));
 
-  if (isLoading || !currentUser) {
+  if (!currentUser) {
+    // Basic loading state or message if current user isn't immediately available
     return (
-      <Card className="w-full max-w-2xl mx-auto shadow-xl">
-        <CardHeader>
-          <CardTitle><Skeleton className="h-7 w-3/4" /></CardTitle>
-          <CardDescription><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3 mt-1" /></CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="teacher-select">Select Teacher</Label>
-            <Skeleton className="h-10 w-full mt-1" />
-            <Skeleton className="h-4 w-1/2 mt-2" />
-          </div>
-          <div className="flex flex-col md:flex-row gap-6 items-start">
-            <Skeleton className="h-[290px] w-[280px] rounded-md border" />
-            <div className="flex-1 space-y-4 w-full">
-              <Skeleton className="h-6 w-1/2 mb-2" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-8 w-3/4 mt-2" />
-              <Skeleton className="h-10 w-full mt-1" />
-              <div className="flex gap-2 mt-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <Card className="w-full max-w-2xl mx-auto shadow-xl">
+            <CardHeader><CardTitle>Loading User...</CardTitle></CardHeader>
+            <CardContent><p>Please wait while user data is being loaded.</p></CardContent>
+        </Card>
     );
   }
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -162,7 +112,7 @@ export function AvailabilityForm() {
           <Label htmlFor="teacher-select">Select Teacher</Label>
           <Select
             value={currentUser.id}
-            onValueChange={async (teacherId) => {
+            onValueChange={(teacherId) => {
               const teacher = allTeachers.find(t => t.id === teacherId);
               if (teacher) {
                 setCurrentUser({ id: teacher.id, name: teacher.name, role: 'teacher' });
