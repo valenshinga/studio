@@ -54,50 +54,67 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-4 flex-grow">
-            <>
-              <div className="space-y-1 min-w-[150px]">
-                <Label htmlFor="teacher-filter">Profesor(a)</Label>
-                <Select value={filters.teacherId || "all"} onValueChange={handleTeacherChange}>
-                  <SelectTrigger id="teacher-filter">
-                    <SelectValue placeholder="Todos los Profesores" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Profesores</SelectItem>
-                    {teachers.map((teacher: Teacher) => (
-                      <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {isLoading ? (
+              <>
+                <div className="space-y-1 min-w-[150px]">
+                  <Label htmlFor="teacher-filter">Docente</Label>
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-1 min-w-[150px]">
+                  <Label htmlFor="language-filter">Idioma</Label>
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="flex items-center space-x-2 pt-5 md:pt-6">
+                  <Skeleton className="h-6 w-11" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1 min-w-[150px]">
+                  <Label htmlFor="teacher-filter">Docente</Label>
+                  <Select value={filters.teacherId || "all"} onValueChange={handleTeacherChange}>
+                    <SelectTrigger id="teacher-filter">
+                      <SelectValue placeholder="Todos los Docentes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Docentes</SelectItem>
+                      {teachers.map((teacher: Teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-1 min-w-[150px]">
-                <Label htmlFor="language-filter">Idioma</Label>
-                <Select value={filters.languageId || "all"} onValueChange={handleLanguageChange}>
-                  <SelectTrigger id="language-filter">
-                    <SelectValue placeholder="Todos los Idiomas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Idiomas</SelectItem>
-                    {languages.map((language: Language) => (
-                      <SelectItem key={language.id} value={language.id}>
-                        {language.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center space-x-2 pt-5 md:pt-6">
-                <Switch
-                  id="conflict-toggle"
-                  checked={filters.highlightConflicts}
-                  onCheckedChange={handleConflictToggle}
-                />
-                <Label htmlFor="conflict-toggle">Resaltar Conflictos</Label>
-              </div>
-            </>
+                <div className="space-y-1 min-w-[150px]">
+                  <Label htmlFor="language-filter">Idioma</Label>
+                  <Select value={filters.languageId || "all"} onValueChange={handleLanguageChange}>
+                    <SelectTrigger id="language-filter">
+                      <SelectValue placeholder="Todos los Idiomas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Idiomas</SelectItem>
+                      {languages.map((language: Language) => (
+                        <SelectItem key={language.id} value={language.id}>
+                          {language.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 pt-5 md:pt-6">
+                  <Switch
+                    id="conflict-toggle"
+                    checked={filters.highlightConflicts}
+                    onCheckedChange={handleConflictToggle}
+                  />
+                  <Label htmlFor="conflict-toggle">Resaltar Conflictos</Label>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </CardContent>
