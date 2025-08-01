@@ -54,7 +54,7 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-4 flex-grow">
-            {isLoading ? (
+            {/* {isLoading ? (
               <>
                 <div className="space-y-1 min-w-[150px]">
                   <Label htmlFor="teacher-filter">Docente</Label>
@@ -69,7 +69,7 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
                   <Skeleton className="h-4 w-24" />
                 </div>
               </>
-            ) : (
+            ) : ( */}
               <>
                 <div className="space-y-1 min-w-[150px]">
                   <Label htmlFor="teacher-filter">Docente</Label>
@@ -114,7 +114,7 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
                   <Label htmlFor="conflict-toggle">Resaltar Conflictos</Label>
                 </div>
               </>
-            )}
+            {/* )} */}
           </div>
         </div>
       </CardContent>

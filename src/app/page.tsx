@@ -191,7 +191,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="container mx-auto py-2">
+    <div className="container mx-auto py-2 ">
       <div className="flex justify-between items-center mb-4">
         <FilterControls filters={filters} onFiltersChange={setFilters} />
         <ClassFormDialog
@@ -207,13 +207,13 @@ export default function CalendarPage() {
       </div>
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1 shadow-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <Card className="lg:col-span-2 shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl">Calendario</CardTitle>
             <CardDescription>Selecciona una fecha para ver los eventos.</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center p-0 sm:p-2 md:p-4">
+          <CardContent className="flex justify-center p-0 sm:p-2 md:p-4 w-full h-full">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -226,7 +226,7 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 shadow-lg">
+        <Card className="lg:col-span-1 shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl">
               Eventos para {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : 'ninguna fecha seleccionada'}

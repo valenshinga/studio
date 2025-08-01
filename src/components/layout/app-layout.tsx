@@ -20,7 +20,7 @@ import { LogOut } from 'lucide-react';
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full">
         <Sidebar collapsible="icon" variant="sidebar" side="left" className="border-r">
           <SidebarHeader className="p-4 flex items-center justify-between">
             <LinguaCalLogo />
