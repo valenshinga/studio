@@ -12,7 +12,7 @@ import {
   addUnavailability,
   removeUnavailability,
 } from '@/lib/mock-data';
-import type { Availability, SimulatedUser, Teacher } from '@/types';
+import type { Availability, SimulatedUser, Teacher } from '@/types/types';
 import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

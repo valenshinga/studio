@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { ClassEvent } from '@/types';
+import type { ClassEvent } from '@/types/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

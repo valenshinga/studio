@@ -5,14 +5,15 @@ import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { Teacher, Language } from '@/types';
-import { mockTeachers, mockLanguages } from '@/lib/mock-data';
+import type { Clase, Docente, Lenguaje } from '@/types/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { FilterIcon } from 'lucide-react';
+import { getDocentes, getLenguajes } from '@/lib/data';
+import { Skeleton } from './ui/skeleton';
 
 export interface CalendarFilters {
-  teacherId?: string;
-  languageId?: string;
+  docenteId?: string;
+  lenguajeId?: string;
   highlightConflicts: boolean;
 }
 
@@ -21,23 +22,30 @@ interface FilterControlsProps {
   onFiltersChange: (newFilters: CalendarFilters) => void;
 }
 
-// Directly use mock data
-const allTeachersData: Teacher[] = mockTeachers;
-const allLanguagesData: Language[] = mockLanguages;
 
 export function FilterControls({ filters, onFiltersChange }: FilterControlsProps) {
-  // Initialize state directly with mock data
-  const [teachers, setTeachers] = useState<Teacher[]>(allTeachersData);
-  const [languages, setLanguages] = useState<Language[]>(allLanguagesData);
+  // Initialize state with empty arrays
+  const [docentes, setDocentes] = useState<Docente[]>([]);
+  const [lenguajes, setLenguajes] = useState<Lenguaje[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // No isLoading state needed as data is synchronous
+  useEffect(() => {
+    const fetchData = async () => {
+      const docentesData = await getDocentes();
+      const lenguajesData = await getLenguajes();
+      setDocentes(docentesData);
+      setLenguajes(lenguajesData);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
 
-  const handleTeacherChange = (teacherId: string) => {
-    onFiltersChange({ ...filters, teacherId: teacherId === "all" ? undefined : teacherId });
+  const handleTeacherChange = (docenteId: string) => {
+    onFiltersChange({ ...filters, docenteId: docenteId === "all" ? undefined : docenteId });
   };
 
-  const handleLanguageChange = (languageId: string) => {
-    onFiltersChange({ ...filters, languageId: languageId === "all" ? undefined : languageId });
+  const handleLanguageChange = (lenguajeId: string) => {
+    onFiltersChange({ ...filters, lenguajeId: lenguajeId === "all" ? undefined : lenguajeId });
   };
 
   const handleConflictToggle = (checked: boolean) => {
@@ -54,7 +62,7 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-4 flex-grow">
-            {/* {isLoading ? (
+            {loading ? (
               <>
                 <div className="space-y-1 min-w-[150px]">
                   <Label htmlFor="teacher-filter">Docente</Label>
@@ -69,19 +77,19 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
                   <Skeleton className="h-4 w-24" />
                 </div>
               </>
-            ) : ( */}
+            ) : (
               <>
                 <div className="space-y-1 min-w-[150px]">
                   <Label htmlFor="teacher-filter">Docente</Label>
-                  <Select value={filters.teacherId || "all"} onValueChange={handleTeacherChange}>
+                  <Select value={filters.docenteId || "all"} onValueChange={handleTeacherChange}>
                     <SelectTrigger id="teacher-filter">
                       <SelectValue placeholder="Todos los Docentes" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos los Docentes</SelectItem>
-                      {teachers.map((teacher: Teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.name}
+                      {docentes.map((docente: Docente) => (
+                        <SelectItem key={docente.id} value={docente.id}>
+                          {docente.apellido}, {docente.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -90,15 +98,15 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
 
                 <div className="space-y-1 min-w-[150px]">
                   <Label htmlFor="language-filter">Idioma</Label>
-                  <Select value={filters.languageId || "all"} onValueChange={handleLanguageChange}>
+                  <Select value={filters.lenguajeId || "all"} onValueChange={handleLanguageChange}>
                     <SelectTrigger id="language-filter">
                       <SelectValue placeholder="Todos los Idiomas" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos los Idiomas</SelectItem>
-                      {languages.map((language: Language) => (
-                        <SelectItem key={language.id} value={language.id}>
-                          {language.name}
+                      {lenguajes.map((lenguaje: Lenguaje) => (
+                        <SelectItem key={lenguaje.id} value={lenguaje.id}>
+                          {lenguaje.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -114,7 +122,7 @@ export function FilterControls({ filters, onFiltersChange }: FilterControlsProps
                   <Label htmlFor="conflict-toggle">Resaltar Conflictos</Label>
                 </div>
               </>
-            {/* )} */}
+            )}
           </div>
         </div>
       </CardContent>

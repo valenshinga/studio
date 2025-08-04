@@ -25,52 +25,53 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TeacherFormDialog } from '@/components/teacher-form-dialog';
 import { mockLanguages, getTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/lib/mock-data';
-import type { Teacher, Language } from '@/types';
+import type { Docente, Lenguaje } from '@/types/types';
 import { PlusCircle, Edit, Trash2, Users, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { crearDocente, deleteDocente, getDocentes } from '@/lib/data';
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<Docente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [editingTeacher, setEditingTeacher] = useState<Docente | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
-
-  const fetchTeachers = useCallback(() => {
-    setTeachers(getTeachers());
+  const fetchDocentes = useCallback(async () => {
+    const docentesData = await getDocentes();
+    setTeachers(docentesData);
   }, []);
 
   useEffect(() => {
-    fetchTeachers();
-  }, [fetchTeachers]);
+    fetchDocentes()
+  }, []);
 
-  const handleSaveTeacher = async (data: { name: string; avatarUrl?: string; languageIds: string[] }, teacherId?: string) => {
-    if (teacherId) {
-      updateTeacher(teacherId, data);
+  const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono: string; lenguajesIds: string[] }, id?: string) => {
+    if (id) {
+      updateTeacher(id, data);
     } else {
-      addTeacher(data);
+      console.log("VINE A CREAR DOCENTE")
+      crearDocente(data);
     }
-    fetchTeachers();
+    fetchDocentes();
   };
 
-  const handleDeleteTeacher = (teacherId: string) => {
-    const success = deleteTeacher(teacherId);
+  const handleBorrarDocente = async (teacherId: string) => {
+    const success = await deleteDocente(teacherId);
     if (success) {
-      toast({ title: "Profesor Eliminado", description: "El profesor ha sido eliminado exitosamente." });
-      fetchTeachers();
+      toast({ title: "Docente Eliminado", description: "El Docente ha sido eliminado exitosamente." });
+      fetchDocentes();
     } else {
       toast({ 
         title: "Error al Eliminar", 
-        description: "No se pudo eliminar el profesor. Es posible que esté asignado a clases existentes.", 
+        description: "No se pudo eliminar el Docente. Es posible que esté asignado a clases existentes.", 
         variant: "destructive" 
       });
     }
   };
 
-  const openEditDialog = (teacher: Teacher) => {
+  const openEditDialog = (teacher: Docente) => {
     setEditingTeacher(teacher);
     setIsFormOpen(true);
   };
@@ -80,9 +81,9 @@ export default function TeachersPage() {
     setIsFormOpen(true);
   };
 
-  const filteredTeachers = teachers.filter(teacher =>
-    teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.languagesTaught.some(lang => lang.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredTeachers = teachers.filter(docente =>
+    docente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    docente.lenguajes.some(lenguaje => lenguaje.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
   const getInitials = (name: string) => {
@@ -95,31 +96,31 @@ export default function TeachersPage() {
         <div className="inline-flex items-center justify-center bg-primary/10 text-primary p-3 rounded-full mb-4">
            <Users className="h-10 w-10" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight">Gestión de Profesores</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Gestión de Docentees</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Administra la información de los profesores y los idiomas que enseñan.
+          Administra la información de los Docentees y los idiomas que enseñan.
         </p>
       </div>
       
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <Input
           type="text"
-          placeholder="Buscar profesores o idiomas..."
+          placeholder="Buscar Docentees o idiomas..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full sm:max-w-xs text-base"
         />
         <TeacherFormDialog
-          teacher={editingTeacher}
-          onSave={handleSaveTeacher}
+          docente={editingTeacher}
+          onSave={handleGuardarDocente}
           isOpen={isFormOpen}
           onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
             if (!isOpen) setEditingTeacher(null);
           }}
         >
-          <Button onClick={openNewDialog}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesor
+          <Button onClick={openNewDialog} className='text-[1em]'>
+            <PlusCircle className="mr-2 h-4 w-4" /> Agregar Docente
           </Button>
         </TeacherFormDialog>
       </div>
@@ -136,30 +137,22 @@ export default function TeachersPage() {
           </TableHeader>
           <TableBody>
             {filteredTeachers.length > 0 ? (
-              filteredTeachers.map((teacher) => (
-                <TableRow key={teacher.id}>
-                  <TableCell>
-                    <Avatar>
-                      <AvatarImage src={teacher.avatarUrl} alt={teacher.name} data-ai-hint="person avatar" />
-                      <AvatarFallback>{getInitials(teacher.name)}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{teacher.name}</TableCell>
+              filteredTeachers.map((docente) => (
+                <TableRow key={docente.id}>
+                  <TableCell className="font-medium">{docente.nombre}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {teacher.languagesTaught.map(lang => {
-                        const LanguageIcon = lang.icon || BookOpen;
+                      {docente.lenguajes.map(lang => {
                         return (
-                          <Badge key={lang.id} variant="secondary" className="flex items-center gap-1 text-xs py-0.5 px-1.5" style={{ backgroundColor: lang.color ? `${lang.color}20` : undefined, borderColor: lang.color, color: lang.color ? undefined : 'hsl(var(--foreground))' }}>
-                            <LanguageIcon className="h-3 w-3" style={{ color: lang.color }}/>
-                            {lang.name}
+                          <Badge key={lang.id} variant="secondary" className="flex items-center gap-1 text-xs py-0.5 px-1.5" style={{ backgroundColor: 'hsl(var(--foreground))20', borderColor: 'hsl(var(--foreground))', color: 'hsl(var(--foreground))' }}>
+                            {lang.nombre}
                           </Badge>
                         );
                       })}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(teacher)} className="mr-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(docente)} className="mr-1">
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
                     </Button>
@@ -174,13 +167,13 @@ export default function TeachersPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Esto eliminará permanentemente al profesor.
-                            Si el profesor tiene clases asignadas, no podrá ser eliminado.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente al Docente.
+                            Si el Docente tiene clases asignadas, no podrá ser eliminado.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteTeacher(teacher.id)} className="bg-destructive hover:bg-destructive/90">
+                          <AlertDialogAction onClick={() => handleBorrarDocente(docente.id)} className="bg-destructive hover:bg-destructive/90">
                             Eliminar
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -192,7 +185,7 @@ export default function TeachersPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center">
-                  No se encontraron profesores.
+                  No se encontraron Docentees.
                 </TableCell>
               </TableRow>
             )}
@@ -201,7 +194,7 @@ export default function TeachersPage() {
       </div>
        {filteredTeachers.length === 0 && searchTerm && (
          <p className="text-center text-muted-foreground mt-6">
-           Ningún profesor coincide con "{searchTerm}".
+           Ningún Docente coincide con "{searchTerm}".
          </p>
        )}
     </div>

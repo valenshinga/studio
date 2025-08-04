@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import type { ClassEvent, Teacher, Language, Student } from '@/types';
+import type { ClassEvent, Teacher, Language, Student } from '@/types/types';
 import { mockTeachers, mockLanguages, mockStudents, getTeacherById } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, ClockIcon } from 'lucide-react';

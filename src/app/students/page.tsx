@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { StudentFormDialog } from '@/components/student-form-dialog';
 import { mockStudents, addStudent, updateStudent, deleteStudent, getStudents } from '@/lib/mock-data';
-import type { Student } from '@/types';
+import type { Student } from '@/types/types';
 import { PlusCircle, Edit, Trash2, Eye, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';

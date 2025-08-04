@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Teacher } from '@/types';
+import type { Teacher } from '@/types/types';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

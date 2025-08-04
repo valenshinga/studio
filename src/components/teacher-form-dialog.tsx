@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,73 +27,94 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import type { Teacher, Language } from '@/types';
-import { mockLanguages } from '@/lib/mock-data'; // To get available languages
+import type { Docente, Lenguaje } from '@/types/types';
+import { getLenguajes } from '@/lib/data';
 
-const teacherFormSchema = z.object({
-  name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }).max(50, { message: "El nombre no puede exceder los 50 caracteres." }),
-  avatarUrl: z.string().url({ message: "Por favor, introduce una URL válida para el avatar." }).optional().or(z.literal('')),
-  languageIds: z.array(z.string()).min(1, { message: "Debe seleccionar al menos un idioma." }),
+const docenteFormSchema = z.object({
+  nombre: z.string().min(2, { message: "El Nombre debe tener al menos 2 caracteres." }).max(50, { message: "El Nombre no puede exceder los 50 caracteres." }),
+  apellido: z.string().min(2, { message: "El Apellido debe tener al menos 2 caracteres." }).max(50, { message: "El Apellido no puede exceder los 50 caracteres." }),
+  dni: z.string().length(8, { message: "El DNI debe poseer 8 caracteres." }),
+  email: z.string().email({message: "El Correo electrónico debe tener un formato válido."}),
+  telefono: z.string(),
+  lenguajesIds: z.array(z.string()).min(1, { message: "Debe seleccionar al menos un idioma." }),
 });
 
-type TeacherFormValues = z.infer<typeof teacherFormSchema>;
+type docenteFormValues = z.infer<typeof docenteFormSchema>;
 
 interface TeacherFormDialogProps {
-  teacher?: Teacher | null;
-  onSave: (data: TeacherFormValues, teacherId?: string) => Promise<void>;
+  docente?: Docente | null;
+  onSave: (data: docenteFormValues, teacherId?: string) => Promise<void>;
   children: React.ReactNode;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function TeacherFormDialog({ teacher, onSave, children, isOpen, onOpenChange }: TeacherFormDialogProps) {
+export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenChange }: TeacherFormDialogProps) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [internalOpen, setInternalOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [lenguajes, setLenguajes] = useState<Lenguaje[]>([]);
 
   const open = isOpen !== undefined ? isOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
 
-  const form = useForm<TeacherFormValues>({
-    resolver: zodResolver(teacherFormSchema),
+  const form = useForm<docenteFormValues>({
+    resolver: zodResolver(docenteFormSchema),
     defaultValues: {
-      name: '',
-      avatarUrl: '',
-      languageIds: [],
+      nombre: '',
+      apellido: '',
+      dni: '',
+      email: '',
+      telefono: '',
+      lenguajesIds: [],
     },
   });
 
   useEffect(() => {
+      const fetchData = async () => {
+        const lenguajesData = await getLenguajes();
+        setLenguajes(lenguajesData)
+      };
+      fetchData();
+    }, []);
+
+  useEffect(() => {
     if (open) {
-      if (teacher) {
+      if (docente) {
         form.reset({
-          name: teacher.name,
-          avatarUrl: teacher.avatarUrl || '',
-          languageIds: teacher.languagesTaught.map(lang => lang.id),
+          nombre: docente.nombre,
+          apellido: docente.apellido,
+          dni: docente.dni || "",
+          email: docente.email || "",
+          telefono: docente.telefono || "",
+          lenguajesIds: docente.lenguajes.map(lang => lang.id)
         });
       } else {
         form.reset({
-          name: '',
-          avatarUrl: '',
-          languageIds: [],
+          nombre: '',
+          apellido: '',
+          dni: "",
+          email: "",
+          telefono: "",
+          lenguajesIds: []
         });
       }
     }
-  }, [teacher, form, open]);
+  }, [docente, form, open]);
 
-  const onSubmit = async (data: TeacherFormValues) => {
+  const onSubmit = async (data: docenteFormValues) => {
     setIsSubmitting(true);
     try {
-      await onSave(data, teacher?.id);
+      await onSave(data, docente?.id);
       toast({
-        title: teacher ? "Profesor Actualizado" : "Profesor Creado",
-        description: `El profesor ${data.name} ha sido ${teacher ? 'actualizado' : 'creado'} exitosamente.`,
+        title: docente ? "Docente Actualizado" : "Docente Creado",
+        description: `El Docente ${data.nombre} ha sido ${docente ? 'actualizado' : 'creado'} exitosamente.`,
       });
       setOpen(false);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || `Hubo un problema al ${teacher ? 'actualizar' : 'crear'} el profesor.`,
+        description: error.message || `Hubo un problema al ${docente ? 'actualizar' : 'crear'} el Docente.`,
         variant: "destructive",
       });
     } finally {
@@ -106,21 +127,21 @@ export function TeacherFormDialog({ teacher, onSave, children, isOpen, onOpenCha
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{teacher ? 'Editar Profesor' : 'Agregar Nuevo Profesor'}</DialogTitle>
+          <DialogTitle>{docente ? 'Editar Docente' : 'Agregar Nuevo Docente'}</DialogTitle>
           <DialogDescription>
-            {teacher ? 'Modifica los detalles del profesor.' : 'Completa los campos para agregar un nuevo profesor.'}
+            {docente ? 'Modifica los detalles del Docente.' : 'Completa los campos para agregar un nuevo Docente.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
-              name="name"
+              name="nombre"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre Completo</FormLabel>
+                  <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Prof. Albert Einstein" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -128,58 +149,99 @@ export function TeacherFormDialog({ teacher, onSave, children, isOpen, onOpenCha
             />
             <FormField
               control={form.control}
-              name="avatarUrl"
+              name="apellido"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>URL del Avatar (Opcional)</FormLabel>
+                  <FormLabel>Apellido</FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://ejemplo.com/avatar.png" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
-                  <p className="text-xs text-muted-foreground pt-1">Si se deja vacío, se usará un placeholder con las iniciales.</p>
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="languageIds"
+              name="dni"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>DNI</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Correo electrónico</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="telefono"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lenguajesIds"
               render={() => (
                 <FormItem>
                   <FormLabel>Idiomas que Enseña</FormLabel>
                   <div className="space-y-2 rounded-md border p-4 max-h-48 overflow-y-auto">
-                    {mockLanguages.map((language) => (
+                    {lenguajes 
+                    ? (lenguajes.map((lenguaje) => (
                       <FormField
-                        key={language.id}
+                        key={lenguaje.id}
                         control={form.control}
-                        name="languageIds"
+                        name="lenguajesIds"
                         render={({ field }) => {
                           return (
                             <FormItem
-                              key={language.id}
+                              key={lenguaje.id}
                               className="flex flex-row items-start space-x-3 space-y-0"
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(language.id)}
+                                  checked={field.value?.includes(lenguaje.id)}
                                   onCheckedChange={(checked) => {
                                     return checked
-                                      ? field.onChange([...(field.value || []), language.id])
+                                      ? field.onChange([...(field.value || []), lenguaje.id])
                                       : field.onChange(
                                           (field.value || []).filter(
-                                            (value) => value !== language.id
+                                            (value) => value !== lenguaje.id
                                           )
                                         );
                                   }}
                                 />
                               </FormControl>
                               <FormLabel className="font-normal">
-                                {language.name}
+                                {lenguaje.nombre}
                               </FormLabel>
                             </FormItem>
                           );
                         }}
                       />
-                    ))}
+                    ))) 
+                    : ""
+                    }
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -187,12 +249,12 @@ export function TeacherFormDialog({ teacher, onSave, children, isOpen, onOpenCha
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isSubmitting}>
+                <Button type="button" variant="outline" disabled={isSubmitting} className='text-[1em]'>
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (teacher ? 'Guardando Cambios...' : 'Creando Profesor...') : (teacher ? 'Guardar Cambios' : 'Crear Profesor')}
+              <Button type="submit" disabled={isSubmitting} className='text-[1em]'>
+                {isSubmitting ? (docente ? 'Guardando Cambios...' : 'Creando Docente...') : (docente ? 'Guardar Cambios' : 'Crear Docente')}
               </Button>
             </DialogFooter>
           </form>

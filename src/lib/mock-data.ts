@@ -1,5 +1,5 @@
 
-import type { Language, Teacher, ClassEvent, Availability, SimulatedUser, Student, EventType } from '@/types';
+import type { Language, Teacher, ClassEvent, Availability, SimulatedUser, Student, EventType } from '@/types/types';
 import { BookOpen, Globe, MessageSquare, Users as UsersIconLucide, Palette, Film, Music } from 'lucide-react'; // Added more icons for variety
 import { format } from 'date-fns';
 

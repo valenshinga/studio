@@ -14,7 +14,7 @@ import {
   deleteClassEvent,
   type ClassEventFormData
 } from '@/lib/mock-data';
-import type { ClassEvent, Availability, Teacher } from '@/types';
+import type { Clase, Disponibilidad, Docente } from '@/types/types';
 import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,105 +34,106 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getClases, getDisponibilidades } from '@/lib/data';
 
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<ClassEvent[]>(mockEvents);
-  const [unavailabilities, setUnavailabilities] = useState<Availability[]>(mockUnavailabilities);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [filters, setFilters] = useState<CalendarFilters>({
+  const [clases, setClases] = useState<Clase[]>([]);
+  const [indisponibilidades, setIndisponibilidades] = useState<Disponibilidad[]>([]);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date | undefined>(new Date());
+  const [filtros, setFiltros] = useState<CalendarFilters>({
     highlightConflicts: true,
   });
-  const [isClassFormOpen, setIsClassFormOpen] = useState(false);
-  const [editingClassEvent, setEditingClassEvent] = useState<ClassEvent | null>(null);
-  const [deletingClassEventId, setDeletingClassEventId] = useState<string | null>(null);
+  const [formAbierto, setFormAbierto] = useState(false);
+  const [claseEditada, setClaseEditada] = useState<Clase | null>(null);
+  const [claseBorrada, setClaseBorrada] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const refreshEvents = useCallback(() => {
-    // In a real app, you'd re-fetch. Here, we just re-reference the potentially mutated mock array.
-    setEvents([...mockEvents]); 
-    setUnavailabilities([...mockUnavailabilities]);
+  const refrescarClases = useCallback(async () => {
+    const clases = await getClases();
+    const disponibilidades = await getDisponibilidades();
+    setClases([...clases]); 
+    setIndisponibilidades([...disponibilidades]);
   }, []);
 
   useEffect(() => {
-    if (!selectedDate) {
-      setSelectedDate(new Date());
+    if (!fechaSeleccionada) {
+      setFechaSeleccionada(new Date());
     }
-  }, [selectedDate]);
+  }, [fechaSeleccionada]);
   
   const dailyEventsAndUnavailabilities = useMemo(() => {
-    if (!selectedDate) return [];
+    if (!fechaSeleccionada) return [];
 
-    const dayEvents = events.filter(event =>
-      isSameDay(event.date, selectedDate) &&
-      (!filters.teacherId || event.teacher.id === filters.teacherId) &&
-      (!filters.languageId || event.language.id === filters.languageId)
+    const dayEvents = clases.filter(event =>
+      isSameDay(event.fecha, fechaSeleccionada) &&
+      (!filtros.docenteId || event.docente.id === filtros.docenteId) &&
+      (!filtros.lenguajeId || event.lenguaje.id === filtros.lenguajeId)
     );
 
-    const unavailabilitiesForDay: ClassEvent[] = unavailabilities
+    const unavailabilitiesForDay: Clase[] = indisponibilidades
       .filter(ua => 
-        isSameDay(ua.date, selectedDate) && 
-        ua.isUnavailable &&
-        (!filters.teacherId || ua.teacherId === filters.teacherId)
+        isSameDay(ua.fecha, fechaSeleccionada) && 
+        ua.estaDisponible &&
+        (!filtros.docenteId || ua.docenteId === filtros.docenteId)
       )
       .map(ua => {
-        const teacherInvolved = events.find(e => e.teacher.id === ua.teacherId)?.teacher || 
-                                events.find(e => e.id.includes(ua.teacherId))?.teacher; 
+        const teacherInvolved = clases.find(e => e.docente.id === ua.docenteId)?.docente || 
+                                clases.find(e => e.id.includes(ua.docenteId))?.docente; 
         
-        const teacherData: Teacher = teacherInvolved || {
-            id: ua.teacherId, 
-            name: `Profesor ${ua.teacherId.substring(ua.teacherId.length - 2)}`, 
-            languagesTaught:[]
+        const teacherData: Docente = teacherInvolved || {
+            id: ua.docenteId, 
+            nombre: `Profesor ${ua.docenteId.substring(ua.docenteId.length - 2)}`, 
+            apellido: `Profesor ${ua.docenteId.substring(ua.docenteId.length - 2)}`, 
+            lenguajes:[]
         };
 
         return {
           id: ua.id,
-          date: ua.date,
-          startTime: "Todo el día",
-          endTime: "",
-          teacher: teacherData,
-          language: {id: 'unavail', name: 'No disponible'},
-          teacherId: teacherData.id,
-          languageId: 'unavail',
-          classroomId: '-',
-          classroom: '-',
-          type: 'unavailable' as 'unavailable', // This is correct for display but ClassEvent expects 'class'|'special'
-          description: ua.reason || "Marcado como no disponible",
-        } as unknown as ClassEvent; // Cast because 'unavailable' type is special
+          fecha: ua.fecha,
+          horaInicio: "Todo el día",
+          horaFin: "",
+          docente: teacherData,
+          lenguaje: {id: 'unavail', name: 'No disponible'},
+          docenteId: teacherData.id,
+          lenguajeId: 'unavail',
+          linkReunion: "",
+          estado: 'cancelada' as 'cancelada', // This is correct for display but Clase expects 'class'|'special'
+          description: ua.motivo || "Marcado como no disponible",
+        } as unknown as Clase; // Cast because 'unavailable' type is special
       });
     
     return [...dayEvents, ...unavailabilitiesForDay].sort((a, b) => {
       // @ts-ignore
-      if (a.type === 'unavailable' && b.type !== 'unavailable') return -1;
+      if (a.estado === 'cancelada' && b.estado !== 'cancelada') return -1;
       // @ts-ignore
-      if (a.type !== 'unavailable' && b.type === 'unavailable') return 1;
-      return a.startTime.localeCompare(b.startTime);
+      if (a.estado !== 'cancelada' && b.estado === 'cancelada') return 1;
+      return a.horaInicio.localeCompare(b.horaInicio);
     });
 
-  }, [selectedDate, filters, events, unavailabilities]);
+  }, [fechaSeleccionada, filtros, clases, indisponibilidades]);
 
-  const isEventConflict = (event: ClassEvent): boolean => {
-    if (event.type !== 'class' && event.type !== 'special') return false;
-    const teacherUnavailability = getUnavailabilityForDate(event.date, event.teacher.id);
+  const isEventConflict = (event: Clase): boolean => {
+    if (event.estado !== 'programada' && event.estado !== 'cancelada') return false;
+    const teacherUnavailability = getUnavailabilityForDate(event.fecha, event.docente.id);
     return !!teacherUnavailability;
   };
   
   const calendarModifiers = useMemo(() => {
-    const eventDays: Date[] = events.map(e => e.date);
-    const unavailableDays: Date[] = unavailabilities
-      .filter(ua => ua.isUnavailable && (!filters.teacherId || ua.teacherId === filters.teacherId))
-      .map(ua => ua.date);
+    const eventDays: Date[] = clases.map(e => e.fecha);
+    const unavailableDays: Date[] = indisponibilidades
+      .filter(ua => ua.estaDisponible && (!filtros.docenteId || ua.docenteId === filtros.docenteId))
+      .map(ua => ua.fecha);
     
-    const conflictDays: Date[] = events
-      .filter(event => isEventConflict(event) && (!filters.teacherId || event.teacher.id === filters.teacherId))
-      .map(e => e.date);
+    const conflictDays: Date[] = clases
+      .filter(event => isEventConflict(event) && (!filtros.docenteId || event.docente.id === filtros.docenteId))
+      .map(e => e.fecha);
 
     return {
       event: eventDays,
       unavailable: unavailableDays,
-      conflict: filters.highlightConflicts ? conflictDays : [],
+      conflict: filtros.highlightConflicts ? conflictDays : [],
     };
-  }, [filters.teacherId, filters.highlightConflicts, events, unavailabilities]);
+  }, [filtros.docenteId, filtros.highlightConflicts, clases, indisponibilidades]);
 
   const calendarModifierStyles = {
     event: { 
@@ -154,53 +155,53 @@ export default function CalendarPage() {
     }
   };
 
-  const handleOpenNewClassForm = () => {
-    setEditingClassEvent(null);
-    setIsClassFormOpen(true);
+  const abrirFormClase = () => {
+    setClaseEditada(null);
+    setFormAbierto(true);
   };
 
-  const handleEditClass = (classEvent: ClassEvent) => {
-    setEditingClassEvent(classEvent);
-    setIsClassFormOpen(true);
+  const handleEditClass = (classEvent: Clase) => {
+    setClaseEditada(classEvent);
+    setFormAbierto(true);
   };
 
-  const handleSaveClass = (data: ClassEventFormData, classEventId?: string) => {
+  const handleGuardarClase = (data: ClassEventFormData, classEventId?: string) => {
     if (classEventId) {
       updateClassEvent(classEventId, data);
     } else {
       addClassEvent(data);
     }
-    refreshEvents();
+    refrescarClases();
   };
 
   const confirmDeleteClass = (eventId: string) => {
-    setDeletingClassEventId(eventId);
+    setClaseBorrada(eventId);
   };
 
-  const executeDeleteClass = () => {
-    if (deletingClassEventId) {
-      const success = deleteClassEvent(deletingClassEventId);
+  const handleDeleteClase = () => {
+    if (claseBorrada) {
+      const success = deleteClassEvent(claseBorrada);
       if (success) {
         toast({ title: "Clase Eliminada", description: "La clase ha sido eliminada exitosamente." });
-        refreshEvents();
+        refrescarClases();
       } else {
         toast({ title: "Error", description: "No se pudo eliminar la clase.", variant: "destructive" });
       }
-      setDeletingClassEventId(null);
+      setClaseBorrada(null);
     }
   };
 
   return (
     <div className="container mx-auto py-2 ">
       <div className="flex justify-between items-center mb-4">
-        <FilterControls filters={filters} onFiltersChange={setFilters} />
+        <FilterControls filters={filtros} onFiltersChange={setFiltros} />
         <ClassFormDialog
-          classEvent={editingClassEvent}
-          onSave={handleSaveClass}
-          isOpen={isClassFormOpen}
-          onOpenChange={setIsClassFormOpen}
+          classEvent={claseEditada}
+          onSave={handleGuardarClase}
+          isOpen={formAbierto}
+          onOpenChange={setFormAbierto}
         >
-          <Button onClick={handleOpenNewClassForm} className="ml-4">
+          <Button onClick={abrirFormClase} className="ml-4 text-[1em]">
             <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Clase
           </Button>
         </ClassFormDialog>
@@ -216,8 +217,8 @@ export default function CalendarPage() {
           <CardContent className="flex justify-center p-0 sm:p-2 md:p-4 w-full h-full">
             <Calendar
               mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
+              selected={fechaSeleccionada}
+              onSelect={setFechaSeleccionada}
               className="rounded-md"
               modifiers={calendarModifiers}
               modifiersStyles={calendarModifierStyles}
@@ -229,7 +230,7 @@ export default function CalendarPage() {
         <Card className="lg:col-span-1 shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl">
-              Eventos para {selectedDate ? format(selectedDate, 'PPP', { locale: es }) : 'ninguna fecha seleccionada'}
+              Eventos para {fechaSeleccionada ? format(fechaSeleccionada, 'PPP', { locale: es }) : 'ninguna fecha seleccionada'}
             </CardTitle>
             <CardDescription>
               Clases programadas e indisponibilidades de profesores para el día seleccionado.
@@ -243,7 +244,7 @@ export default function CalendarPage() {
                   <EventCard 
                     key={event.id} 
                     event={event} 
-                    isConflict={filters.highlightConflicts && isEventConflict(event)}
+                    isConflict={filtros.highlightConflicts && isEventConflict(event)}
                     onEdit={() => handleEditClass(event)}
                     onDelete={() => confirmDeleteClass(event.id)}
                   />
@@ -259,8 +260,8 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
       </div>
-      {deletingClassEventId && (
-        <AlertDialog open={!!deletingClassEventId} onOpenChange={() => setDeletingClassEventId(null)}>
+      {claseBorrada && (
+        <AlertDialog open={!!claseBorrada} onOpenChange={() => setClaseBorrada(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro de eliminar esta clase?</AlertDialogTitle>
@@ -269,8 +270,8 @@ export default function CalendarPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeletingClassEventId(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={executeDeleteClass} className="bg-destructive hover:bg-destructive/90">
+              <AlertDialogCancel onClick={() => setClaseBorrada(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteClase} className="bg-destructive hover:bg-destructive/90">
                 Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>

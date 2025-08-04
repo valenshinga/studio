@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getStudentById, mockEvents, mockTeachers, mockLanguages } from '@/lib/mock-data'; // Assuming mockEvents is exported
-import type { Student, ClassEvent, Teacher, Language } from '@/types';
+import type { Student, ClassEvent, Teacher, Language } from '@/types/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, User, Mail, BookOpen, CalendarDays, Clock, Users, GraduationCap } from 'lucide-react';
