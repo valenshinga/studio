@@ -11,6 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableSkeleton,
 } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -37,10 +38,15 @@ export default function TeachersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [docenteEditado, setDocenteEditado] = useState<Docente | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const fetchDocentes = useCallback(async () => {
-    const docentesData = await getDocentes();
-    setTeachers(docentesData);
+    setIsLoading(true);
+    getDocentes().then((data) => {
+      console.log(data)
+      setTeachers(data);
+      setIsLoading(false);
+    }).catch();
   }, []);
 
   useEffect(() => {
@@ -125,6 +131,10 @@ export default function TeachersPage() {
       </div>
 
       <div className="rounded-lg border shadow-sm overflow-hidden">
+          {isLoading ? (
+              <TableSkeleton rows={0} columns={7}></TableSkeleton>
+            ) 
+          : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -194,9 +204,11 @@ export default function TeachersPage() {
                   No se encontraron Docentes.
                 </TableCell>
               </TableRow>
-            )}
+            )
+          }
           </TableBody>
         </Table>
+        )}
       </div>
        {filteredTeachers.length === 0 && searchTerm && (
          <p className="text-center text-muted-foreground mt-6">

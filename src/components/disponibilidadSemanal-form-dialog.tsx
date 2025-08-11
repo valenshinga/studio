@@ -44,7 +44,7 @@ const disponibilidadFormSchema = z.object({
 type disponibilidadFormValues = z.infer<typeof disponibilidadFormSchema>;
 
 interface DisponibilidadSemanalFormDialogProps {
-    disponibilidad: {diaSemana:string,horaDesde:string,horaHasta:string, index?: number};
+    disponibilidad: {id?:string | null,diaSemana:string,horaDesde:string,horaHasta:string, index?: number} | null;
     onSave: (data: disponibilidadFormValues) => void;
     children: React.ReactNode;
     isOpen?: boolean;
@@ -55,7 +55,12 @@ export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, childr
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [internalOpen, setInternalOpen] = useState(false);
-    const [disponibilidadInterna, setDisponibilidadInterna] = useState({diaSemana:"",horaDesde:"",horaHasta:""});
+    const [disponibilidadInterna, setDisponibilidadInterna] = useState<{
+                                                                        id?: string | null;
+                                                                        diaSemana: string;
+                                                                        horaDesde: string;
+                                                                        horaHasta: string;
+                                                                        }>({id:"",diaSemana:"",horaDesde:"",horaHasta:""});
 
     const open = isOpen !== undefined ? isOpen : internalOpen;
     const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
@@ -65,7 +70,7 @@ export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, childr
         if (disponibilidad) {
             setDisponibilidadInterna(disponibilidad);
         } else {
-            setDisponibilidadInterna({ diaSemana: "", horaDesde: "", horaHasta: "" }); 
+            setDisponibilidadInterna({id:"", diaSemana: "", horaDesde: "", horaHasta: "" }); 
         }
     }, [open]);
 

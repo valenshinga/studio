@@ -40,7 +40,7 @@ const docenteFormSchema = z.object({
   nombre: z.string().min(2, { message: "El Nombre debe tener al menos 2 caracteres." }).max(50, { message: "El Nombre no puede exceder los 50 caracteres." }),
   apellido: z.string().min(2, { message: "El Apellido debe tener al menos 2 caracteres." }).max(50, { message: "El Apellido no puede exceder los 50 caracteres." }),
   dni: z.string().length(8, { message: "El DNI debe poseer 8 caracteres." }),
-  email: z.string().email({message: "El Correo electrónico debe tener un formato válido."}),
+  email: z.string().email({ message: "El Correo electrónico debe tener un formato válido." }),
   telefono: z.string().optional(),
   lenguajesIds: z.array(z.string()),
   disponibilidades: z.array(z.object({
@@ -71,7 +71,7 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
 
   const open = isOpen !== undefined ? isOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
-  
+
   const form = useForm<docenteFormValues>({
     resolver: zodResolver(docenteFormSchema),
     defaultValues: {
@@ -88,12 +88,12 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
   const { fields: disponibilidadFields, append, remove, update, replace } =
     useFieldArray({ control, name: 'disponibilidades' });
   useEffect(() => {
-      const fetchData = async () => {
-        const lenguajesData = await getLenguajes();
-        setLenguajes(lenguajesData)
-      };
-      fetchData();
-    }, []);
+    const fetchData = async () => {
+      const lenguajesData = await getLenguajes();
+      setLenguajes(lenguajesData)
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -147,19 +147,24 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
       setIsSubmitting(false);
     }
   };
-  const onSaveDisponibilidad = (data: {diaSemana: string, horaDesde: string, horaHasta: string}) => {
-  const item: DisponibilidadSemanal = {
-    diaSemana: data.diaSemana as any,
-    horaDesde: data.horaDesde,
-    horaHasta: data.horaHasta,
+  const onSaveDisponibilidad = (data: { diaSemana: string, horaDesde: string, horaHasta: string }) => {
+    const item: DisponibilidadSemanal = {
+      diaSemana: data.diaSemana as any,
+      horaDesde: data.horaDesde,
+      horaHasta: data.horaHasta,
+    };
+    append(item);
+    setOpenDisponibilidad(false);
   };
-  append(item);
-  setOpenDisponibilidad(false);
-};
 
   const openNewDialog = () => {
     setOpenDisponibilidad(true);
-    // setDocenteEditado(null);
+    setDisponibilidadEditada(null);
+  };
+
+  const openEditDialog = (disponibilidad: {id:string, diaSemana: string, horaDesde: string, horaHasta: string}) => {
+    setOpenDisponibilidad(true);
+    setDisponibilidadEditada(disponibilidad);
   };
 
   return (
@@ -246,41 +251,41 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
                 <FormItem>
                   <FormLabel>Idiomas que Enseña</FormLabel>
                   <div className="space-y-2 rounded-md border p-4 max-h-48 overflow-y-auto">
-                    {lenguajes 
-                    ? (lenguajes.map((lenguaje) => (
-                      <FormField
-                        key={lenguaje.id}
-                        control={form.control}
-                        name="lenguajesIds"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={lenguaje.id}
-                              className="flex flex-row items-start space-x-3 space-y-0"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(lenguaje.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...(field.value || []), lenguaje.id])
-                                      : field.onChange(
+                    {lenguajes
+                      ? (lenguajes.map((lenguaje) => (
+                        <FormField
+                          key={lenguaje.id}
+                          control={form.control}
+                          name="lenguajesIds"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={lenguaje.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(lenguaje.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), lenguaje.id])
+                                        : field.onChange(
                                           (field.value || []).filter(
                                             (value) => value !== lenguaje.id
                                           )
                                         );
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                {lenguaje.nombre}
-                              </FormLabel>
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    ))) 
-                    : ""
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {lenguaje.nombre}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      )))
+                      : ""
                     }
                   </div>
                   <FormMessage />
@@ -293,53 +298,54 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
               render={() => (
                 <FormItem>
                   <FormLabel className='flex justify-between items-center'>
-                    Disponibilidad semanal 
+                    Disponibilidad semanal
                     <DisponibilidadSemanalFormDialog
-              disponibilidad={disponibilidadEditada ?? {diaSemana:"", horaDesde:"",horaHasta:""}}
-              onSave={onSaveDisponibilidad}
-              isOpen={openDisponibilidad}
-              onOpenChange={(isOpenDisponibilidad) => {
-                setOpenDisponibilidad(isOpenDisponibilidad)
-                if (!isOpenDisponibilidad) setDisponibilidadEditada(null)
-              }}
-            >
-                <Button type="button" variant="default" className='text-[1em]' onClick={openNewDialog}>
-                  Agregar
-                </Button>
-            </DisponibilidadSemanalFormDialog>
-                </FormLabel>
+                      disponibilidad={disponibilidadEditada ?? null}
+                      onSave={onSaveDisponibilidad}
+                      isOpen={openDisponibilidad}
+                      onOpenChange={(isOpenDisponibilidad) => {
+                        setOpenDisponibilidad(isOpenDisponibilidad)
+                        if (!isOpenDisponibilidad) setDisponibilidadEditada(null)
+                      }}
+                    >
+                      <Button type="button" variant="default" className='text-[1em]' onClick={openNewDialog}>
+                        Agregar
+                      </Button>
+                    </DisponibilidadSemanalFormDialog>
+                  </FormLabel>
                   <div className="rounded-lg border shadow-sm overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Dia</TableHead>
-                                <TableHead>Desde</TableHead>
-                                <TableHead>Hasta</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {disponibilidadFields.length > 0 ? (
-                                disponibilidadFields.map((d, index) => (
-                                    <TableRow key={d.id}>
-                                      <TableCell>{d.diaSemana}</TableCell>
-                                      <TableCell>{d.horaDesde}</TableCell>
-                                      <TableCell>{d.horaHasta}</TableCell>
-                                      <TableCell>
-                                        {/* <Button onClick={() => }>Editar</Button>
-                                        <Button onClick={() => remove(index)}>Eliminar</Button> */}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))
-                                ) : (
-                                <TableRow key={null}>
-                                  <TableCell colSpan={7} className="h-24 text-center">
-                                    No se cargaron horarios disponibles.
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className='text-center'>Dia</TableHead>
+                          <TableHead className='text-center'>Desde</TableHead>
+                          <TableHead className='text-center'>Hasta</TableHead>
+                          <TableHead className='text-center'>Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {disponibilidadFields.length > 0 ? (
+                          disponibilidadFields.map((d, index) => (
+                            <TableRow key={d.id}>
+                              <TableCell className='text-center'>{d.diaSemana}</TableCell>
+                              <TableCell className='text-center'>{d.horaDesde}</TableCell>
+                              <TableCell className='text-center'>{d.horaHasta}</TableCell>
+                              <TableCell className='text-center'>
+                                <Button onClick={() => openEditDialog(d)}>Editar</Button>
+                                {/* <Button onClick={() => remove(index)}>Eliminar</Button> */}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow key={null}>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                              No se cargaron horarios disponibles.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </FormItem>
               )}
             />

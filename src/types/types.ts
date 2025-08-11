@@ -54,7 +54,7 @@ export interface DisponibilidadSemanal {
   id?:string;
   personaId?: string;
   tipoPersona?: "docente" | "alumno";
-  diaSemana: "lunes" | "martes" | "miercoles" | "jueves" | "viernes";
+  diaSemana: string;
   horaDesde: string;
   horaHasta: string;
 }
