@@ -30,12 +30,12 @@ import { PlusCircle, Edit, Trash2, Users, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { crearDocente, deleteDocente, getDocentes } from '@/lib/data';
+import { crearDocente, deleteDocente, getDocentes, updateDocente } from '@/lib/data';
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Docente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingTeacher, setEditingTeacher] = useState<Docente | null>(null);
+  const [docenteEditado, setDocenteEditado] = useState<Docente | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
   const fetchDocentes = useCallback(async () => {
@@ -47,11 +47,10 @@ export default function TeachersPage() {
     fetchDocentes()
   }, []);
 
-  const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono: string; lenguajesIds: string[] }, id?: string) => {
+  const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono?: string | undefined; lenguajesIds: string[], disponibilidades: {diaSemana: string, horaDesde: string, horaHasta: string}[] }, id?: string) => {
     if (id) {
-      updateTeacher(id, data);
+      updateDocente(id, data);
     } else {
-      console.log("VINE A CREAR DOCENTE")
       crearDocente(data);
     }
     fetchDocentes();
@@ -72,12 +71,12 @@ export default function TeachersPage() {
   };
 
   const openEditDialog = (teacher: Docente) => {
-    setEditingTeacher(teacher);
+    setDocenteEditado(teacher);
     setIsFormOpen(true);
   };
 
   const openNewDialog = () => {
-    setEditingTeacher(null);
+    setDocenteEditado(null);
     setIsFormOpen(true);
   };
 
@@ -96,27 +95,27 @@ export default function TeachersPage() {
         <div className="inline-flex items-center justify-center bg-primary/10 text-primary p-3 rounded-full mb-4">
            <Users className="h-10 w-10" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight">Gestión de Docentees</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Gestión de Docentes</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Administra la información de los Docentees y los idiomas que enseñan.
+          Administra la información de los Docentes y los idiomas que enseñan.
         </p>
       </div>
       
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <Input
           type="text"
-          placeholder="Buscar Docentees o idiomas..."
+          placeholder="Buscar Docentes o idiomas..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full sm:max-w-xs text-base"
         />
         <TeacherFormDialog
-          docente={editingTeacher}
+          docente={docenteEditado}
           onSave={handleGuardarDocente}
           isOpen={isFormOpen}
           onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
-            if (!isOpen) setEditingTeacher(null);
+            if (!isOpen) setDocenteEditado(null);
           }}
         >
           <Button onClick={openNewDialog} className='text-[1em]'>
@@ -129,8 +128,11 @@ export default function TeachersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">Avatar</TableHead>
               <TableHead>Nombre</TableHead>
+              <TableHead>Apellido</TableHead>
+              <TableHead>DNI</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Teléfono</TableHead>
               <TableHead>Idiomas que Enseña</TableHead>
               <TableHead className="text-right w-[150px]">Acciones</TableHead>
             </TableRow>
@@ -140,6 +142,10 @@ export default function TeachersPage() {
               filteredTeachers.map((docente) => (
                 <TableRow key={docente.id}>
                   <TableCell className="font-medium">{docente.nombre}</TableCell>
+                  <TableCell className="font-medium">{docente.apellido}</TableCell>
+                  <TableCell className="font-medium">{docente.dni}</TableCell>
+                  <TableCell className="font-medium">{docente.email}</TableCell>
+                  <TableCell className="font-medium">{docente.telefono ?? "No cargado"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {docente.lenguajes.map(lang => {
@@ -184,8 +190,8 @@ export default function TeachersPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No se encontraron Docentees.
+                <TableCell colSpan={7} className="h-24 text-center">
+                  No se encontraron Docentes.
                 </TableCell>
               </TableRow>
             )}

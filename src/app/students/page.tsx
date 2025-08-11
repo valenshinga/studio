@@ -24,59 +24,60 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { StudentFormDialog } from '@/components/student-form-dialog';
-import { mockStudents, addStudent, updateStudent, deleteStudent, getStudents } from '@/lib/mock-data';
-import type { Student } from '@/types/types';
+import type { Alumno } from '@/types/types';
 import { PlusCircle, Edit, Trash2, Eye, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { crearAlumno, deleteAlumno, getAlumnos, updateAlumno } from '@/lib/data';
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [alumnoEditado, setAlumnoEditado] = useState<Alumno | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
-
-  const fetchStudents = useCallback(() => {
-    setStudents(getStudents());
-  }, []);
+  const fetchAlumnos = useCallback(async () => {
+      const alumnosData = await getAlumnos();
+      setAlumnos(alumnosData);
+    }, []);  
 
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    fetchAlumnos();
+  }, [fetchAlumnos]);
 
-  const handleSaveStudent = async (data: { name: string; email: string }, studentId?: string) => {
+  const handleGuardarAlumno = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono: string; }, studentId?: string) => {
     if (studentId) {
-      updateStudent(studentId, data);
+      updateAlumno(studentId, data);
     } else {
-      addStudent(data);
+      crearAlumno(data);
     }
-    fetchStudents(); // Refrescar la lista
+    fetchAlumnos(); // Refrescar la lista
   };
 
-  const handleDeleteStudent = (studentId: string) => {
-    const success = deleteStudent(studentId);
+  const handleBorrarAlumno = async (studentId: string) => {
+    const success = await deleteAlumno(studentId);
     if (success) {
       toast({ title: "Alumno Eliminado", description: "El alumno ha sido eliminado exitosamente." });
-      fetchStudents();
+      fetchAlumnos();
     } else {
       toast({ title: "Error", description: "No se pudo eliminar el alumno.", variant: "destructive" });
     }
   };
 
-  const openEditDialog = (student: Student) => {
-    setEditingStudent(student);
+  const openEditDialog = (student: Alumno) => {
+    setAlumnoEditado(student);
     setIsFormOpen(true);
   };
 
   const openNewDialog = () => {
-    setEditingStudent(null);
+    setAlumnoEditado(null);
     setIsFormOpen(true);
   };
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = alumnos.filter(student =>
+    student.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -100,12 +101,12 @@ export default function StudentsPage() {
           className="w-full sm:max-w-xs text-base"
         />
         <StudentFormDialog
-          student={editingStudent}
-          onSave={handleSaveStudent}
+          student={alumnoEditado}
+          onSave={handleGuardarAlumno}
           isOpen={isFormOpen}
           onOpenChange={setIsFormOpen}
         >
-          <Button onClick={openNewDialog}>
+          <Button onClick={openNewDialog} className='text-[1em]'>
             <PlusCircle className="mr-2 h-4 w-4" /> Agregar Alumno
           </Button>
         </StudentFormDialog>
@@ -116,7 +117,10 @@ export default function StudentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Apellido</TableHead>
+              <TableHead>DNI</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Teléfono</TableHead>
               <TableHead className="text-right w-[200px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -124,11 +128,15 @@ export default function StudentsPage() {
             {filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell className="font-medium">{student.nombre}</TableCell>
+                  <TableCell className="font-medium">{student.apellido}</TableCell>
+                  <TableCell className="font-medium">{student.dni}</TableCell>
+                  <TableCell className="font-medium">{student.email}</TableCell>
+                  <TableCell className="font-medium">{student.telefono}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" asChild className="mr-1">
-                      <Link href={`/students/${student.id}`}>
+                      <Link href={`/alumnos/${student.id}`}>
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">Ver Detalles</span>
                       </Link>
@@ -154,7 +162,7 @@ export default function StudentsPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteStudent(student.id)} className="bg-destructive hover:bg-destructive/90">
+                          <AlertDialogAction onClick={() => handleBorrarAlumno(student.id)} className="bg-destructive hover:bg-destructive/90">
                             Eliminar
                           </AlertDialogAction>
                         </AlertDialogFooter>
@@ -165,7 +173,7 @@ export default function StudentsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No se encontraron alumnos.
                 </TableCell>
               </TableRow>

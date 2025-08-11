@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -27,16 +27,28 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import type { Docente, Lenguaje } from '@/types/types';
+import type { DisponibilidadSemanal, Docente, Lenguaje } from '@/types/types';
 import { getLenguajes } from '@/lib/data';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Badge, Edit, Trash2 } from 'lucide-react';
+import { AlertDialog } from '@radix-ui/react-alert-dialog';
+import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { DisponibilidadSemanalFormDialog } from './disponibilidadSemanal-form-dialog';
 
 const docenteFormSchema = z.object({
   nombre: z.string().min(2, { message: "El Nombre debe tener al menos 2 caracteres." }).max(50, { message: "El Nombre no puede exceder los 50 caracteres." }),
   apellido: z.string().min(2, { message: "El Apellido debe tener al menos 2 caracteres." }).max(50, { message: "El Apellido no puede exceder los 50 caracteres." }),
   dni: z.string().length(8, { message: "El DNI debe poseer 8 caracteres." }),
   email: z.string().email({message: "El Correo electrónico debe tener un formato válido."}),
-  telefono: z.string(),
-  lenguajesIds: z.array(z.string()).min(1, { message: "Debe seleccionar al menos un idioma." }),
+  telefono: z.string().optional(),
+  lenguajesIds: z.array(z.string()),
+  disponibilidades: z.array(z.object({
+    id: z.string().nullable().optional(),
+    diaSemana: z.string(),
+    horaDesde: z.string(),
+    horaHasta: z.string()
+  }))
 });
 
 type docenteFormValues = z.infer<typeof docenteFormSchema>;
@@ -54,10 +66,12 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
   const [lenguajes, setLenguajes] = useState<Lenguaje[]>([]);
+  const [openDisponibilidad, setOpenDisponibilidad] = useState(false);
+  const [disponibilidadEditada, setDisponibilidadEditada] = useState<DisponibilidadSemanal | null>(null);
 
   const open = isOpen !== undefined ? isOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
-
+  
   const form = useForm<docenteFormValues>({
     resolver: zodResolver(docenteFormSchema),
     defaultValues: {
@@ -67,9 +81,12 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
       email: '',
       telefono: '',
       lenguajesIds: [],
+      disponibilidades: [],
     },
   });
-
+  const { control, setValue, reset } = form;
+  const { fields: disponibilidadFields, append, remove, update, replace } =
+    useFieldArray({ control, name: 'disponibilidades' });
   useEffect(() => {
       const fetchData = async () => {
         const lenguajesData = await getLenguajes();
@@ -81,26 +98,35 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
   useEffect(() => {
     if (open) {
       if (docente) {
-        form.reset({
+        reset({
           nombre: docente.nombre,
           apellido: docente.apellido,
-          dni: docente.dni || "",
-          email: docente.email || "",
-          telefono: docente.telefono || "",
-          lenguajesIds: docente.lenguajes.map(lang => lang.id)
+          dni: docente.dni ?? "",
+          email: docente.email ?? "",
+          telefono: docente.telefono ?? "",
+          lenguajesIds: docente.lenguajes.map(lang => lang.id),
+          disponibilidades: docente.disponibilidades?.map(disp => ({
+            id: disp.id,
+            diaSemana: disp.diaSemana,
+            horaDesde: disp.horaDesde,
+            horaHasta: disp.horaHasta
+          })) ?? []
         });
+        // setDisponibilidades(docente.disponibilidades ?? [])
       } else {
-        form.reset({
+        reset({
           nombre: '',
           apellido: '',
           dni: "",
           email: "",
           telefono: "",
-          lenguajesIds: []
+          lenguajesIds: [],
+          disponibilidades: []
         });
+        replace([])
       }
     }
-  }, [docente, form, open]);
+  }, [docente, open, reset, replace]);
 
   const onSubmit = async (data: docenteFormValues) => {
     setIsSubmitting(true);
@@ -121,11 +147,25 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
       setIsSubmitting(false);
     }
   };
+  const onSaveDisponibilidad = (data: {diaSemana: string, horaDesde: string, horaHasta: string}) => {
+  const item: DisponibilidadSemanal = {
+    diaSemana: data.diaSemana as any,
+    horaDesde: data.horaDesde,
+    horaHasta: data.horaHasta,
+  };
+  append(item);
+  setOpenDisponibilidad(false);
+};
+
+  const openNewDialog = () => {
+    setOpenDisponibilidad(true);
+    // setDocenteEditado(null);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[880px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{docente ? 'Editar Docente' : 'Agregar Nuevo Docente'}</DialogTitle>
           <DialogDescription>
@@ -193,7 +233,7 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
                 <FormItem>
                   <FormLabel>Teléfono</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -244,6 +284,62 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
                     }
                   </div>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="disponibilidades"
+              render={() => (
+                <FormItem>
+                  <FormLabel className='flex justify-between items-center'>
+                    Disponibilidad semanal 
+                    <DisponibilidadSemanalFormDialog
+              disponibilidad={disponibilidadEditada ?? {diaSemana:"", horaDesde:"",horaHasta:""}}
+              onSave={onSaveDisponibilidad}
+              isOpen={openDisponibilidad}
+              onOpenChange={(isOpenDisponibilidad) => {
+                setOpenDisponibilidad(isOpenDisponibilidad)
+                if (!isOpenDisponibilidad) setDisponibilidadEditada(null)
+              }}
+            >
+                <Button type="button" variant="default" className='text-[1em]' onClick={openNewDialog}>
+                  Agregar
+                </Button>
+            </DisponibilidadSemanalFormDialog>
+                </FormLabel>
+                  <div className="rounded-lg border shadow-sm overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Dia</TableHead>
+                                <TableHead>Desde</TableHead>
+                                <TableHead>Hasta</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {disponibilidadFields.length > 0 ? (
+                                disponibilidadFields.map((d, index) => (
+                                    <TableRow key={d.id}>
+                                      <TableCell>{d.diaSemana}</TableCell>
+                                      <TableCell>{d.horaDesde}</TableCell>
+                                      <TableCell>{d.horaHasta}</TableCell>
+                                      <TableCell>
+                                        {/* <Button onClick={() => }>Editar</Button>
+                                        <Button onClick={() => remove(index)}>Eliminar</Button> */}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                ) : (
+                                <TableRow key={null}>
+                                  <TableCell colSpan={7} className="h-24 text-center">
+                                    No se cargaron horarios disponibles.
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
                 </FormItem>
               )}
             />

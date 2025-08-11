@@ -1,7 +1,7 @@
 
 'use server'; // Recommended for server-side data fetching or mutations if applicable
 
-import type { Lenguaje, Docente, Clase, Disponibilidad, SimulatedUser } from '@/types/types';
+import type { Lenguaje, Docente, Clase, Disponibilidad, SimulatedUser, Alumno } from '@/types/types';
 import postgres from 'postgres';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -16,8 +16,46 @@ export async function getLenguajes(): Promise<Lenguaje[]> {
 }
 
 export async function getDocentes(): Promise<Docente[]> {
+  try{
+    const data = await sql`
+      SELECT 
+      d.id,
+      d.nombre,
+      d.apellido,
+      d.dni,
+      d.email,
+      d.telefono,
+      ARRAY_AGG(
+        CASE 
+        WHEN l.id IS NOT NULL 
+        THEN jsonb_build_object('id', l.id, 'nombre', l.nombre)
+        ELSE NULL
+        END
+      ) FILTER (WHERE l.id IS NOT NULL) as lenguajes
+      FROM docentes d
+      LEFT JOIN docentes_lenguajes dl ON d.id = dl.docente_id
+      LEFT JOIN lenguajes l ON l.id = dl.lenguaje_id
+      GROUP BY d.id, d.nombre, d.apellido, d.dni, d.email, d.telefono;
+    `;
+
+    return data.map((docente): Docente => ({
+      id: docente.id,
+      nombre: docente.nombre,
+      apellido: docente.apellido,
+      dni: docente.dni,
+      email: docente.email,
+      telefono: docente.telefono,
+      lenguajes: docente.lenguajes || []
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function getAlumnos(): Promise<Alumno[]> {
   try {
-    const data = await sql<Docente[]>`SELECT * FROM docentes`;
+    const data = await sql<Alumno[]>`SELECT * FROM alumnos`;
 
     return data;
   } catch (error) {
@@ -49,19 +87,21 @@ export async function getDisponibilidades(): Promise<Disponibilidad[]> {
 }
 
 type DocenteCreate = {
-  id?: string | undefined;
   nombre: string;
   apellido: string;
   dni?: string | undefined;
   email?: string | undefined;
   telefono?: string | undefined;
   lenguajesIds: string[];
+  disponibilidades?: {diaSemana: string, horaDesde: string, horaHasta: string}[];
 }
 
-export async function crearDocente(entry: Omit<DocenteCreate, 'id'>){
-  // console.log("holaaa", entry)
+export async function crearDocente(entry: DocenteCreate){
+  console.log(entry)
+  return
   try{
-    await sql`
+    await sql.begin(async (transaction) => {
+      const [newDocente] = await transaction`
         INSERT INTO docentes 
         (nombre, apellido, dni, email, telefono)
         VALUES 
@@ -71,8 +111,34 @@ export async function crearDocente(entry: Omit<DocenteCreate, 'id'>){
               ${entry.email ?? ""}, 
               ${entry.telefono ?? ""}
             )
-        ;
-    `;
+          RETURNING id;
+        `;
+      entry.lenguajesIds.forEach(async element => {
+        await transaction`
+          INSERT INTO docentes_lenguajes 
+          (docente_id, lenguaje_id)
+          VALUES 
+              (${newDocente.id},
+                ${element} 
+              )
+          ;
+        `;
+      });
+      entry.disponibilidades?.forEach(async element => {
+        await transaction`
+          INSERT INTO disponibilidad_semanal 
+          (persona_id, tipo_persona, dia_semana, hora_desde, hora_hasta)
+          VALUES 
+              (${newDocente.id},
+                'docente',
+                ${element.diaSemana},
+                ${element.horaDesde},
+                ${element.horaHasta}
+              )
+          ;
+        `;
+      });
+    });
   } catch(e){
     return {
       message: 'ERROR: Error creando Docente.',
@@ -80,18 +146,20 @@ export async function crearDocente(entry: Omit<DocenteCreate, 'id'>){
   }
 }
 
-export async function updateDocente(entry: Docente){
+export async function updateDocente(docenteId: string, entry: DocenteCreate){
   // console.log("holaaa", entry)
   try{
-    await sql`
+    await sql.begin(async (transaction) => {
+      await transaction`
         UPDATE docentes 
         SET nombre=${entry.nombre}, 
             apellido=${entry.apellido}, 
             dni=${entry.dni ?? ""}, 
             email=${entry.email ?? ""}, 
             telefono=${entry.telefono ?? ""}
-        WHERE id=${entry.id};
-    `;
+        WHERE id=${docenteId};
+      `;
+    });
   } catch(e){
     return {
       message: 'ERROR: Error actualizando Docente.',
@@ -102,10 +170,79 @@ export async function updateDocente(entry: Docente){
 export async function deleteDocente(docenteId: string){
   // console.log("holaaa", entry)
   try{
-    await sql`
+    await sql.begin(async (transaction) => {
+      await transaction`
         DELETE FROM docentes 
         WHERE id=${docenteId};
-    `;
+      `;
+    });
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+type AlumnoCreate = {
+  nombre: string;
+  apellido: string;
+  dni?: string | undefined;
+  email?: string | undefined;
+  telefono?: string | undefined;
+}
+
+export async function crearAlumno(entry: AlumnoCreate){
+  try {
+    await sql.begin(async (transaction) => {
+      await transaction`
+        INSERT INTO alumnos 
+        (nombre, apellido, dni, email, telefono)
+        VALUES 
+            (${entry.nombre}, 
+              ${entry.apellido}, 
+              ${entry.dni ?? ""}, 
+              ${entry.email ?? ""}, 
+              ${entry.telefono ?? ""}
+            )
+      `;
+    });
+  } catch(e) {
+    return {
+      message: 'ERROR: Error creando Alumno.',
+      error: e
+    };
+  }
+}
+
+export async function updateAlumno(alumnoId: string, entry: AlumnoCreate){
+  // console.log("holaaa", entry)
+  try{
+    await sql.begin(async (transaction) => {
+      await transaction`
+        UPDATE alumnos 
+        SET nombre=${entry.nombre}, 
+            apellido=${entry.apellido}, 
+            dni=${entry.dni ?? ""}, 
+            email=${entry.email ?? ""}, 
+            telefono=${entry.telefono ?? ""}
+        WHERE id=${alumnoId};
+      `;
+    });
+  } catch(e){
+    return {
+      message: 'ERROR: Error actualizando Alumno.',
+    };
+  }
+}
+
+export async function deleteAlumno(alumnoId: string){
+  // console.log("holaaa", entry)
+  try{
+    await sql.begin(async (transaction) => {
+      await transaction`
+        DELETE FROM alumnos
+        WHERE id=${alumnoId};
+      `;
+    });
     return true;
   } catch(e){
     return false;

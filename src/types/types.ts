@@ -11,6 +11,7 @@ export interface Docente {
   email?: string | undefined;
   telefono?: string | undefined;
   lenguajes: Lenguaje[];
+  disponibilidades?: DisponibilidadSemanal[];
 }
 
 export interface Alumno {
@@ -20,6 +21,7 @@ export interface Alumno {
   email?: string | undefined;
   telefono?: string | undefined;
   dni?: string | undefined;
+  disponibilidades?: DisponibilidadSemanal[];
 }
 
 export type EstadoClase = 'programada' | 'cancelada' | 'pospuesta';
@@ -46,6 +48,15 @@ export interface Disponibilidad {
   fecha: Date;
   estaDisponible: boolean;
   motivo?: string; // Optional reason for unavailability
+}
+
+export interface DisponibilidadSemanal {
+  id?:string;
+  personaId?: string;
+  tipoPersona?: "docente" | "alumno";
+  diaSemana: "lunes" | "martes" | "miercoles" | "jueves" | "viernes";
+  horaDesde: string;
+  horaHasta: string;
 }
 
 export interface SimulatedUser {

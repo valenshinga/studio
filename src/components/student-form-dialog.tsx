@@ -26,24 +26,27 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { Student } from '@/types/types';
+import type { Alumno } from '@/types/types';
 
-const studentFormSchema = z.object({
-  name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }).max(50, { message: "El nombre no puede exceder los 50 caracteres." }),
-  email: z.string().email({ message: "Por favor, introduce un correo electrónico válido." }),
+const AlumnoFormSchema = z.object({
+  nombre: z.string().min(2, { message: "El Nombre debe tener al menos 2 caracteres." }).max(50, { message: "El Nombre no puede exceder los 50 caracteres." }),
+  apellido: z.string().min(2, { message: "El Apellido debe tener al menos 2 caracteres." }).max(50, { message: "El Apellido no puede exceder los 50 caracteres." }),
+  dni: z.string().length(8, { message: "El DNI debe poseer 8 caracteres." }),
+  email: z.string().email({message: "El Correo electrónico debe tener un formato válido."}),
+  telefono: z.string(),
 });
 
-type StudentFormValues = z.infer<typeof studentFormSchema>;
+type AlumnoFormValues = z.infer<typeof AlumnoFormSchema>;
 
-interface StudentFormDialogProps {
-  student?: Student | null; // For editing
-  onSave: (data: StudentFormValues, studentId?: string) => Promise<void>;
+interface AlumnoFormDialogProps {
+  student?: Alumno | null; // For editing
+  onSave: (data: AlumnoFormValues, studentId?: string) => Promise<void>;
   children: React.ReactNode; // Trigger button
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function StudentFormDialog({ student, onSave, children, isOpen, onOpenChange }: StudentFormDialogProps) {
+export function StudentFormDialog({ student, onSave, children, isOpen, onOpenChange }: AlumnoFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -51,42 +54,51 @@ export function StudentFormDialog({ student, onSave, children, isOpen, onOpenCha
   const open = isOpen !== undefined ? isOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
 
-  const form = useForm<StudentFormValues>({
-    resolver: zodResolver(studentFormSchema),
+  const form = useForm<AlumnoFormValues>({
+    resolver: zodResolver(AlumnoFormSchema),
     defaultValues: {
-      name: student?.name || '',
-      email: student?.email || '',
+      nombre: '',
+      apellido: '',
+      dni: '',
+      email: '',
+      telefono: '',
     },
   });
 
   React.useEffect(() => {
     if (student && open) {
       form.reset({
-        name: student.name,
+        nombre: student.nombre,
+        apellido: student.apellido,
+        telefono: student.telefono,
         email: student.email,
+        dni: student.dni,
       });
     } else if (!student && open) {
       form.reset({
-        name: '',
+        nombre: '',
+        apellido: '',
         email: '',
+        telefono: '',
+        dni: '',
       });
     }
   }, [student, form, open]);
 
-  const onSubmit = async (data: StudentFormValues) => {
+  const onSubmit = async (data: AlumnoFormValues) => {
     setIsSubmitting(true);
     try {
       await onSave(data, student?.id);
       toast({
         title: student ? "Alumno Actualizado" : "Alumno Creado",
-        description: `El alumno ${data.name} ha sido ${student ? 'actualizado' : 'creado'} exitosamente.`,
+        description: `El Alumno ${data.apellido}, ${data.nombre} ha sido ${student ? 'actualizado' : 'creado'} exitosamente.`,
       });
       setOpen(false);
       form.reset();
     } catch (error) {
       toast({
         title: "Error",
-        description: `Hubo un problema al ${student ? 'actualizar' : 'crear'} el alumno.`,
+        description: `Hubo un problema al ${student ? 'actualizar' : 'crear'} el Alumno.`,
         variant: "destructive",
       });
     } finally {
@@ -101,19 +113,45 @@ export function StudentFormDialog({ student, onSave, children, isOpen, onOpenCha
         <DialogHeader>
           <DialogTitle>{student ? 'Editar Alumno' : 'Agregar Nuevo Alumno'}</DialogTitle>
           <DialogDescription>
-            {student ? 'Modifica los detalles del alumno.' : 'Completa los campos para agregar un nuevo alumno.'}
+            {student ? 'Modifica los detalles del Alumno.' : 'Completa los campos para agregar un nuevo Alumno.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
-              name="name"
+              name="nombre"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre Completo</FormLabel>
+                  <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Pérez" {...field} />
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="apellido"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Apellido</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dni"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>DNI</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -126,7 +164,20 @@ export function StudentFormDialog({ student, onSave, children, isOpen, onOpenCha
                 <FormItem>
                   <FormLabel>Correo Electrónico</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="Ej: juan.perez@example.com" {...field} />
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="telefono"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono</FormLabel>
+                  <FormControl>
+                    <Input type="text" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,11 +185,11 @@ export function StudentFormDialog({ student, onSave, children, isOpen, onOpenCha
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isSubmitting}>
+                <Button type="button" variant="outline" disabled={isSubmitting} className='text-[1em]'>
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} className='text-[1em]'>
                 {isSubmitting ? (student ? 'Guardando Cambios...' : 'Creando Alumno...') : (student ? 'Guardar Cambios' : 'Crear Alumno')}
               </Button>
             </DialogFooter>
