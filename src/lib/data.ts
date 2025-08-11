@@ -97,8 +97,6 @@ type DocenteCreate = {
 }
 
 export async function crearDocente(entry: DocenteCreate){
-  console.log(entry)
-  return
   try{
     await sql.begin(async (transaction) => {
       const [newDocente] = await transaction`
@@ -125,21 +123,25 @@ export async function crearDocente(entry: DocenteCreate){
         `;
       });
       entry.disponibilidades?.forEach(async element => {
+        const horaDesdeSQL = `${element.horaDesde}:00`;
+        const horaHastaSQL = `${element.horaHasta}:00`;
         await transaction`
           INSERT INTO disponibilidad_semanal 
-          (persona_id, tipo_persona, dia_semana, hora_desde, hora_hasta)
+          (docente_id, alumno_id, tipo_persona, dia_semana, hora_desde, hora_hasta)
           VALUES 
               (${newDocente.id},
+                null,
                 'docente',
                 ${element.diaSemana},
-                ${element.horaDesde},
-                ${element.horaHasta}
+                ${horaDesdeSQL}::time,
+                ${horaHastaSQL}::time
               )
           ;
         `;
       });
     });
   } catch(e){
+    console.log(e )
     return {
       message: 'ERROR: Error creando Docente.',
     };
