@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { DisponibilidadSemanal, Docente, Lenguaje } from '@/types/types';
-import { getLenguajes } from '@/lib/data';
+import { getLenguajes, updateDisponibilidad } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog } from '@radix-ui/react-alert-dialog';
@@ -44,7 +44,7 @@ const docenteFormSchema = z.object({
   telefono: z.string().optional(),
   lenguajesIds: z.array(z.string()),
   disponibilidades: z.array(z.object({
-    id: z.string().nullable().optional(),
+    disponibilidadId: z.string().nullable().optional(),
     diaSemana: z.string(),
     horaDesde: z.string(),
     horaHasta: z.string()
@@ -68,6 +68,7 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
   const [lenguajes, setLenguajes] = useState<Lenguaje[]>([]);
   const [openDisponibilidad, setOpenDisponibilidad] = useState(false);
   const [disponibilidadEditada, setDisponibilidadEditada] = useState<DisponibilidadSemanal | null>(null);
+  const [indexDisponibilidad, setIndexDisponibilidad] = useState<number | null>(null)
 
   const open = isOpen !== undefined ? isOpen : internalOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
@@ -106,7 +107,7 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
           telefono: docente.telefono ?? "",
           lenguajesIds: docente.lenguajes.map(lang => lang.id),
           disponibilidades: docente.disponibilidades?.map(disp => ({
-            id: disp.id,
+            disponibilidadId: disp.id,
             diaSemana: disp.diaSemana,
             horaDesde: disp.horaDesde,
             horaHasta: disp.horaHasta
@@ -147,24 +148,56 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
       setIsSubmitting(false);
     }
   };
-  const onSaveDisponibilidad = (data: { diaSemana: string, horaDesde: string, horaHasta: string }) => {
+const onSaveDisponibilidad = async (
+  data: { disponibilidadId?: string; diaSemana: string; horaDesde: string; horaHasta: string },
+  index?: number
+) => {
+  const hasValidId = !!(data.disponibilidadId && data.disponibilidadId.trim() !== "");
+  const isEditing = index !== undefined && index !== null;
+
+  if (!isEditing) {
+    // 🆕 Caso 1: Crear desde cero
     const item: DisponibilidadSemanal = {
-      diaSemana: data.diaSemana as any,
+      diaSemana: data.diaSemana,
       horaDesde: data.horaDesde,
       horaHasta: data.horaHasta,
     };
     append(item);
-    setOpenDisponibilidad(false);
-  };
+  } 
+  else if (isEditing && !hasValidId) {
+    // ✏️ Caso 2: Editar un elemento sin disponibilidadId
+    const item: DisponibilidadSemanal = {
+      diaSemana: data.diaSemana,
+      horaDesde: data.horaDesde,
+      horaHasta: data.horaHasta,
+    };
+    update(index, item);
+  } 
+  else if (isEditing && hasValidId) {
+    // 🔄 Caso 3: Editar un elemento con disponibilidadId
+    const item: DisponibilidadSemanal = {
+      id: data.disponibilidadId,
+      diaSemana: data.diaSemana,
+      horaDesde: data.horaDesde,
+      horaHasta: data.horaHasta,
+    };
+    await updateDisponibilidad(data.disponibilidadId!, data);
+    update(index, item);
+  }
+
+  setOpenDisponibilidad(false);
+  setIndexDisponibilidad(null);
+};
 
   const openNewDialog = () => {
     setOpenDisponibilidad(true);
     setDisponibilidadEditada(null);
   };
 
-  const openEditDialog = (disponibilidad: {id:string, diaSemana: string, horaDesde: string, horaHasta: string}) => {
+  const openEditDialog = (disponibilidad: {disponibilidadId?:string, diaSemana: string, horaDesde: string, horaHasta: string}, index: number) => {
     setOpenDisponibilidad(true);
     setDisponibilidadEditada(disponibilidad);
+    setIndexDisponibilidad(index)
   };
 
   return (
@@ -305,8 +338,12 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
                       isOpen={openDisponibilidad}
                       onOpenChange={(isOpenDisponibilidad) => {
                         setOpenDisponibilidad(isOpenDisponibilidad)
-                        if (!isOpenDisponibilidad) setDisponibilidadEditada(null)
+                        if (!isOpenDisponibilidad){ 
+                          setDisponibilidadEditada(null)
+                          setIndexDisponibilidad(null)
+                        }
                       }}
+                      index={indexDisponibilidad ?? undefined}
                     >
                       <Button type="button" variant="default" className='text-[1em]' onClick={openNewDialog}>
                         Agregar
@@ -326,12 +363,25 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
                       <TableBody>
                         {disponibilidadFields.length > 0 ? (
                           disponibilidadFields.map((d, index) => (
-                            <TableRow key={d.id}>
+                            <TableRow key={d.disponibilidadId ?? d.id}>
                               <TableCell className='text-center'>{d.diaSemana}</TableCell>
                               <TableCell className='text-center'>{d.horaDesde}</TableCell>
                               <TableCell className='text-center'>{d.horaHasta}</TableCell>
                               <TableCell className='text-center'>
-                                <Button onClick={() => openEditDialog(d)}>Editar</Button>
+                                <Button
+                                  type='button'
+                                  onClick={() => openEditDialog(
+                                    {
+                                      disponibilidadId: d.disponibilidadId ?? undefined,
+                                      diaSemana: d.diaSemana,
+                                      horaDesde: d.horaDesde,
+                                      horaHasta: d.horaHasta
+                                    },
+                                    index
+                                  )}
+                                >
+                                  Editar
+                                </Button>
                                 {/* <Button onClick={() => remove(index)}>Eliminar</Button> */}
                               </TableCell>
                             </TableRow>

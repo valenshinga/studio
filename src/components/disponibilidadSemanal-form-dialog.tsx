@@ -44,23 +44,25 @@ const disponibilidadFormSchema = z.object({
 type disponibilidadFormValues = z.infer<typeof disponibilidadFormSchema>;
 
 interface DisponibilidadSemanalFormDialogProps {
-    disponibilidad: {id?:string | null,diaSemana:string,horaDesde:string,horaHasta:string, index?: number} | null;
-    onSave: (data: disponibilidadFormValues) => void;
+    disponibilidad: {disponibilidadId?:string | null,diaSemana:string,horaDesde:string,horaHasta:string} | null;
+    onSave: (data: disponibilidadFormValues, index?:number) => void;
     children: React.ReactNode;
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
+    index?: number;
 }
 
-export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, children, isOpen, onOpenChange }: DisponibilidadSemanalFormDialogProps) {
+export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, children, isOpen, onOpenChange, index }: DisponibilidadSemanalFormDialogProps) {
+    console.log("INDEX RECIBIDO AL INICIO", index)
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [internalOpen, setInternalOpen] = useState(false);
     const [disponibilidadInterna, setDisponibilidadInterna] = useState<{
-                                                                        id?: string | null;
+                                                                        disponibilidadId?: string | null;
                                                                         diaSemana: string;
                                                                         horaDesde: string;
                                                                         horaHasta: string;
-                                                                        }>({id:"",diaSemana:"",horaDesde:"",horaHasta:""});
+                                                                        }>({disponibilidadId:"",diaSemana:"",horaDesde:"",horaHasta:""});
 
     const open = isOpen !== undefined ? isOpen : internalOpen;
     const setOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
@@ -70,7 +72,7 @@ export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, childr
         if (disponibilidad) {
             setDisponibilidadInterna(disponibilidad);
         } else {
-            setDisponibilidadInterna({id:"", diaSemana: "", horaDesde: "", horaHasta: "" }); 
+            setDisponibilidadInterna({disponibilidadId:"", diaSemana: "", horaDesde: "", horaHasta: "" }); 
         }
     }, [open]);
 
@@ -81,7 +83,8 @@ export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, childr
     const handleGuardar = () => {
         setIsSubmitting(true);
         try {
-            onSave(disponibilidadInterna)
+            console.log("INDEX AL GUARRDAR", index)
+            onSave(disponibilidadInterna, index ?? undefined)
             setOpen(false);
             toast({
                 title: disponibilidad ? "Disponibilidad Actualizada" : "Disponibilidad Creada",

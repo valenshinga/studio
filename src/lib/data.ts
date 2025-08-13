@@ -31,10 +31,18 @@ export async function getDocentes(): Promise<Docente[]> {
         THEN jsonb_build_object('id', l.id, 'nombre', l.nombre)
         ELSE NULL
         END
-      ) FILTER (WHERE l.id IS NOT NULL) as lenguajes
+      ) FILTER (WHERE l.id IS NOT NULL) as lenguajes,
+      ARRAY_AGG(
+        CASE 
+        WHEN ds.id IS NOT NULL 
+        THEN jsonb_build_object('id', ds.id, 'diaSemana', ds.dia_semana, 'horaDesde', ds.hora_desde,'horaHasta', ds.hora_hasta)
+        ELSE NULL
+        END
+    ) FILTER (WHERE ds.id IS NOT NULL) as disponibilidades
       FROM docentes d
       LEFT JOIN docentes_lenguajes dl ON d.id = dl.docente_id
       LEFT JOIN lenguajes l ON l.id = dl.lenguaje_id
+      LEFT JOIN disponibilidad_semanal ds ON ds.docente_id = d.id
       GROUP BY d.id, d.nombre, d.apellido, d.dni, d.email, d.telefono;
     `;
 
@@ -45,7 +53,8 @@ export async function getDocentes(): Promise<Docente[]> {
       dni: docente.dni,
       email: docente.email,
       telefono: docente.telefono,
-      lenguajes: docente.lenguajes || []
+      lenguajes: docente.lenguajes || [],
+      disponibilidades: docente.disponibilidades || []
     }));
   } catch (error) {
     console.error('Database Error:', error);
@@ -161,6 +170,17 @@ export async function updateDocente(docenteId: string, entry: DocenteCreate){
             telefono=${entry.telefono ?? ""}
         WHERE id=${docenteId};
       `;
+      entry.lenguajesIds.forEach(async element => {
+        await transaction`
+          INSERT INTO docentes_lenguajes 
+          (docente_id, lenguaje_id)
+          VALUES 
+              (${docenteId},
+                ${element} 
+              )
+          ;
+        `;
+      });
     });
   } catch(e){
     return {
@@ -251,6 +271,23 @@ export async function deleteAlumno(alumnoId: string){
   }
 }
 
+export async function updateDisponibilidad(disponibilidadId: any,entry: {diaSemana: string, horaDesde: string, horaHasta: string}){
+  try{
+    await sql.begin(async (transaction) => {
+      await transaction`
+        UPDATE disponibilidad_semanal 
+        SET dia_semana=${entry.diaSemana}, 
+            hora_desde=${entry.horaDesde}, 
+            hora_hasta=${entry.horaHasta}, 
+        WHERE id=${disponibilidadId};
+      `;
+    });
+  } catch(e){
+    return {
+      message: 'ERROR: Error actualizando Docente.',
+    };
+  }
+}
 // export async function agregarDisponibilidad(entry: Omit<Disponibilidad, 'id'>): Promise<Disponibilidad> {
 //   // In a real scenario, this would insert into an 'unavailabilities' table.
 //   const newEntry = addMockUnavailability(entry); // This mutates mockUnavailabilities in mock-data.ts
