@@ -127,7 +127,7 @@ export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, childr
                         <SelectContent>
                             <SelectItem key="lunes" value="lunes">Lunes</SelectItem>
                             <SelectItem key="martes" value="martes">Martes</SelectItem>
-                            <SelectItem key="miercoles" value="miercoles">Miércoles</SelectItem>
+                            <SelectItem key="miércoles" value="miércoles">Miércoles</SelectItem>
                             <SelectItem key="jueves" value="jueves">Jueves</SelectItem>
                             <SelectItem key="viernes" value="viernes">Viernes</SelectItem>
                         </SelectContent>

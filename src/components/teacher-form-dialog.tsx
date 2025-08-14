@@ -181,6 +181,7 @@ const onSaveDisponibilidad = async (
       horaDesde: data.horaDesde,
       horaHasta: data.horaHasta,
     };
+    console.log("VINE AL UPDARE DE VERDAD")
     await updateDisponibilidad(data.disponibilidadId!, data);
     update(index, item);
   }

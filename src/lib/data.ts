@@ -62,6 +62,54 @@ export async function getDocentes(): Promise<Docente[]> {
   }
 }
 
+export async function getDocente(docenteId:string): Promise<Docente[]> {
+  try{
+    const docente = await sql`
+      SELECT 
+      d.id,
+      d.nombre,
+      d.apellido,
+      d.dni,
+      d.email,
+      d.telefono,
+      ARRAY_AGG(
+        CASE 
+        WHEN l.id IS NOT NULL 
+        THEN jsonb_build_object('id', l.id, 'nombre', l.nombre)
+        ELSE NULL
+        END
+      ) FILTER (WHERE l.id IS NOT NULL) as lenguajes,
+      ARRAY_AGG(
+        CASE 
+        WHEN ds.id IS NOT NULL 
+        THEN jsonb_build_object('id', ds.id, 'diaSemana', ds.dia_semana, 'horaDesde', ds.hora_desde,'horaHasta', ds.hora_hasta)
+        ELSE NULL
+        END
+    ) FILTER (WHERE ds.id IS NOT NULL) as disponibilidades
+      FROM docentes d
+      LEFT JOIN docentes_lenguajes dl ON d.id = dl.docente_id
+      LEFT JOIN lenguajes l ON l.id = dl.lenguaje_id
+      LEFT JOIN disponibilidad_semanal ds ON ds.docente_id = d.id
+      WHERE d.id = ${docenteId}
+      GROUP BY d.id, d.nombre, d.apellido, d.dni, d.email, d.telefono;
+    `;
+
+    return docente.map((docente): Docente => ({
+      id: docente.id,
+      nombre: docente.nombre,
+      apellido: docente.apellido,
+      dni: docente.dni,
+      email: docente.email,
+      telefono: docente.telefono,
+      lenguajes: docente.lenguajes || [],
+      disponibilidades: docente.disponibilidades || []
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
 export async function getAlumnos(): Promise<Alumno[]> {
   try {
     const data = await sql<Alumno[]>`SELECT * FROM alumnos`;
@@ -159,6 +207,8 @@ export async function crearDocente(entry: DocenteCreate){
 
 export async function updateDocente(docenteId: string, entry: DocenteCreate){
   // console.log("holaaa", entry)
+  const docente = await getDocente(docenteId)
+
   try{
     await sql.begin(async (transaction) => {
       await transaction`
@@ -171,6 +221,9 @@ export async function updateDocente(docenteId: string, entry: DocenteCreate){
         WHERE id=${docenteId};
       `;
       entry.lenguajesIds.forEach(async element => {
+        if (docente[0].lenguajes.find((lenguaje) => lenguaje.id == element)){
+          return
+        }
         await transaction`
           INSERT INTO docentes_lenguajes 
           (docente_id, lenguaje_id)
@@ -277,14 +330,15 @@ export async function updateDisponibilidad(disponibilidadId: any,entry: {diaSema
       await transaction`
         UPDATE disponibilidad_semanal 
         SET dia_semana=${entry.diaSemana}, 
-            hora_desde=${entry.horaDesde}, 
-            hora_hasta=${entry.horaHasta}, 
+            hora_desde=${entry.horaDesde}::time, 
+            hora_hasta=${entry.horaHasta}::time 
         WHERE id=${disponibilidadId};
       `;
     });
   } catch(e){
     return {
-      message: 'ERROR: Error actualizando Docente.',
+      message: 'ERROR: Error actualizando Disponibilidad.',
+      error: e
     };
   }
 }
