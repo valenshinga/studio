@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { DisponibilidadSemanal, Docente, Lenguaje } from '@/types/types';
-import { getLenguajes, updateDisponibilidad } from '@/lib/data';
+import { deleteDisponibilidad, getLenguajes, updateDisponibilidad } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog } from '@radix-ui/react-alert-dialog';
@@ -181,7 +181,6 @@ const onSaveDisponibilidad = async (
       horaDesde: data.horaDesde,
       horaHasta: data.horaHasta,
     };
-    console.log("VINE AL UPDARE DE VERDAD")
     await updateDisponibilidad(data.disponibilidadId!, data);
     update(index, item);
   }
@@ -201,10 +200,43 @@ const onSaveDisponibilidad = async (
     setIndexDisponibilidad(index)
   };
 
+  const handleDeleteDisponibilidad = async (
+    disponibilidad: {disponibilidadId?:string | null, diaSemana: string, horaDesde: string, horaHasta: string}, 
+    index: number
+  ) => { 
+    const borrandoConId = !!(disponibilidad.disponibilidadId && disponibilidad.disponibilidadId.trim() !== "");
+    const borrandoSinId = index !== undefined && index !== null;
+    if (borrandoConId && disponibilidad.disponibilidadId != undefined) {
+      // ✏️ Caso 2: Editar un elemento sin disponibilidadId
+      await deleteDisponibilidad(disponibilidad.disponibilidadId).then((response)=>{
+        if (response.error){
+          toast({
+            title: "Error",
+            description: `Error eliminando la disponibilidad.`,
+          });
+        }else{
+          remove(index);
+          toast({
+            title: "Disponibilidad eliminada",
+            description: `La disponibilidad se ha eliminado exitosamente.`,
+          });
+        }
+      }
+      )
+    } 
+    else if (borrandoSinId && !borrandoConId) {
+      remove(index);
+      toast({
+          title: "Disponibilidad eliminada",
+          description: `La disponibilidad se ha eliminado exitosamente.`,
+        });
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[880px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{docente ? 'Editar Docente' : 'Agregar Nuevo Docente'}</DialogTitle>
           <DialogDescription>
@@ -368,7 +400,7 @@ const onSaveDisponibilidad = async (
                               <TableCell className='text-center'>{d.diaSemana}</TableCell>
                               <TableCell className='text-center'>{d.horaDesde}</TableCell>
                               <TableCell className='text-center'>{d.horaHasta}</TableCell>
-                              <TableCell className='text-center'>
+                              <TableCell className='text-center flex justify-center gap-2'>
                                 <Button
                                   type='button'
                                   onClick={() => openEditDialog(
@@ -383,7 +415,12 @@ const onSaveDisponibilidad = async (
                                 >
                                   Editar
                                 </Button>
-                                {/* <Button onClick={() => remove(index)}>Eliminar</Button> */}
+                                <Button 
+                                  type='button' 
+                                  onClick={() => handleDeleteDisponibilidad(d, index)}
+                                >
+                                  Eliminar
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))

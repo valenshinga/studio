@@ -150,7 +150,7 @@ type DocenteCreate = {
   email?: string | undefined;
   telefono?: string | undefined;
   lenguajesIds: string[];
-  disponibilidades?: {diaSemana: string, horaDesde: string, horaHasta: string}[];
+  disponibilidades?: {disponibilidadId?: string, diaSemana: string, horaDesde: string, horaHasta: string}[];
 }
 
 export async function crearDocente(entry: DocenteCreate){
@@ -205,11 +205,11 @@ export async function crearDocente(entry: DocenteCreate){
   }
 }
 
-export async function updateDocente(docenteId: string, entry: DocenteCreate){
-  // console.log("holaaa", entry)
-  const docente = await getDocente(docenteId)
+export async function updateDocente(docenteId: string, entry: DocenteCreate) {
+  const docente = await getDocente(docenteId);
+  const lenguajesActuales = docente[0].lenguajes.map(l => l.id);
 
-  try{
+  try {
     await sql.begin(async (transaction) => {
       await transaction`
         UPDATE docentes 
@@ -220,27 +220,52 @@ export async function updateDocente(docenteId: string, entry: DocenteCreate){
             telefono=${entry.telefono ?? ""}
         WHERE id=${docenteId};
       `;
-      entry.lenguajesIds.forEach(async element => {
-        if (docente[0].lenguajes.find((lenguaje) => lenguaje.id == element)){
-          return
-        }
+
+      const aAgregar = entry.lenguajesIds.filter(id => !lenguajesActuales.includes(id));
+      const aEliminar = lenguajesActuales.filter(id => !entry.lenguajesIds.includes(id));
+
+      for (const id of aAgregar) {
         await transaction`
-          INSERT INTO docentes_lenguajes 
-          (docente_id, lenguaje_id)
-          VALUES 
-              (${docenteId},
-                ${element} 
-              )
-          ;
+          INSERT INTO docentes_lenguajes (docente_id, lenguaje_id)
+          VALUES (${docenteId}, ${id});
+        `;
+      }
+
+      for (const id of aEliminar) {
+        await transaction`
+          DELETE FROM docentes_lenguajes
+          WHERE docente_id=${docenteId} AND lenguaje_id=${id};
+        `;
+      }
+
+      entry.disponibilidades?.forEach(async element => {
+        if (docente[0]?.disponibilidades?.find(d => d.id == element.disponibilidadId)) {
+          return;
+        }
+        const horaDesdeSQL = `${element.horaDesde}:00`;
+        const horaHastaSQL = `${element.horaHasta}:00`;
+        await transaction`
+          INSERT INTO disponibilidad_semanal 
+          (docente_id, alumno_id, tipo_persona, dia_semana, hora_desde, hora_hasta)
+          VALUES (
+            ${docenteId},
+            null,
+            'docente',
+            ${element.diaSemana},
+            ${horaDesdeSQL}::time,
+            ${horaHastaSQL}::time
+          );
         `;
       });
     });
-  } catch(e){
+  } catch (e) {
     return {
       message: 'ERROR: Error actualizando Docente.',
+      error: e
     };
   }
 }
+
 
 export async function deleteDocente(docenteId: string){
   // console.log("holaaa", entry)
@@ -253,7 +278,10 @@ export async function deleteDocente(docenteId: string){
     });
     return true;
   } catch(e){
-    return false;
+    return {
+      message: 'ERROR: Error actualizando Docente.',
+      error: e
+    };
   }
 }
 
@@ -338,6 +366,26 @@ export async function updateDisponibilidad(disponibilidadId: any,entry: {diaSema
   } catch(e){
     return {
       message: 'ERROR: Error actualizando Disponibilidad.',
+      error: e
+    };
+  }
+}
+
+export async function deleteDisponibilidad(disponibilidadId: string){
+  try{
+    await sql.begin(async (transaction) => {
+      await transaction`
+        DELETE FROM disponibilidad_semanal 
+        WHERE id=${disponibilidadId.trim()}::uuid;
+      `;
+    });
+    console.log("BORRADO")
+    return {
+      message: 'ELIMINADO CON EXITO.',
+    };
+  } catch(e){
+    return {
+      message: 'ERROR: Error actualizando Docente.',
       error: e
     };
   }

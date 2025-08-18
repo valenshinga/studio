@@ -55,11 +55,11 @@ export default function TeachersPage() {
 
   const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono?: string | undefined; lenguajesIds: string[], disponibilidades: {diaSemana: string, horaDesde: string, horaHasta: string}[] }, id?: string) => {
     if (id) {
-      updateDocente(id, data);
+      await updateDocente(id, data);
     } else {
-      crearDocente(data);
+      await crearDocente(data);
     }
-    fetchDocentes();
+    await fetchDocentes();
   };
 
   const handleBorrarDocente = async (teacherId: string) => {
