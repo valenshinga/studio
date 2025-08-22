@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -25,7 +24,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { TeacherFormDialog } from '@/components/teacher-form-dialog';
-import { mockLanguages, getTeachers, addTeacher, updateTeacher, deleteTeacher } from '@/lib/mock-data';
 import type { Docente, Lenguaje } from '@/types/types';
 import { PlusCircle, Edit, Trash2, Users, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +41,6 @@ export default function TeachersPage() {
   const fetchDocentes = useCallback(async () => {
     setIsLoading(true);
     getDocentes().then((data) => {
-      console.log(data)
       setTeachers(data);
       setIsLoading(false);
     }).catch();
@@ -121,7 +118,10 @@ export default function TeachersPage() {
           isOpen={isFormOpen}
           onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
-            if (!isOpen) setDocenteEditado(null);
+            if (!isOpen) {
+              setDocenteEditado(null);
+              fetchDocentes();
+            }
           }}
         >
           <Button onClick={openNewDialog} className='text-[1em]'>

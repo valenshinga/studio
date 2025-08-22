@@ -11,6 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableSkeleton,
 } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -35,11 +36,14 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [alumnoEditado, setAlumnoEditado] = useState<Alumno | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const fetchAlumnos = useCallback(async () => {
+      setIsLoading(true);
       const alumnosData = await getAlumnos();
       setAlumnos(alumnosData);
-    }, []);  
+      setIsLoading(false);
+    }, []);
 
   useEffect(() => {
     fetchAlumnos();
@@ -104,7 +108,12 @@ export default function StudentsPage() {
           student={alumnoEditado}
           onSave={handleGuardarAlumno}
           isOpen={isFormOpen}
-          onOpenChange={setIsFormOpen}
+          onOpenChange={(isOpen) => {
+            setIsFormOpen(isOpen);
+            if (!isOpen) {
+              fetchAlumnos();
+            }
+          }}
         >
           <Button onClick={openNewDialog} className='text-[1em]'>
             <PlusCircle className="mr-2 h-4 w-4" /> Agregar Alumno
@@ -113,7 +122,12 @@ export default function StudentsPage() {
       </div>
 
       <div className="rounded-lg border shadow-sm overflow-hidden">
-        <Table>
+      {isLoading ? (
+                    <TableSkeleton rows={0} columns={7}></TableSkeleton>
+                  ) 
+                : 
+        (
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
@@ -133,14 +147,7 @@ export default function StudentsPage() {
                   <TableCell className="font-medium">{student.dni}</TableCell>
                   <TableCell className="font-medium">{student.email}</TableCell>
                   <TableCell className="font-medium">{student.telefono}</TableCell>
-                  <TableCell>{student.email}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" asChild className="mr-1">
-                      <Link href={`/alumnos/${student.id}`}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">Ver Detalles</span>
-                      </Link>
-                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(student)} className="mr-1">
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
@@ -180,6 +187,7 @@ export default function StudentsPage() {
             )}
           </TableBody>
         </Table>
+        )}
       </div>
        {filteredStudents.length === 0 && searchTerm && (
          <p className="text-center text-muted-foreground mt-6">
