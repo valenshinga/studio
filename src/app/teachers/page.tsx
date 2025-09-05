@@ -50,7 +50,7 @@ export default function TeachersPage() {
     fetchDocentes()
   }, []);
 
-  const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono?: string | undefined; lenguajesIds: string[], disponibilidades: {diaSemana: string, horaDesde: string, horaHasta: string}[] }, id?: string) => {
+  const handleGuardarDocente = async (data: { nombre: string; apellido: string; dni: string; email: string; telefono: string; lenguajesIds: string[], disponibilidades: {diaSemana: string, horaDesde: string, horaHasta: string}[] }, id?: string) => {
     if (id) {
       await updateDocente(id, data);
     } else {

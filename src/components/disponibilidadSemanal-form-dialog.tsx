@@ -53,7 +53,6 @@ interface DisponibilidadSemanalFormDialogProps {
 }
 
 export function DisponibilidadSemanalFormDialog({ disponibilidad, onSave, children, isOpen, onOpenChange, index }: DisponibilidadSemanalFormDialogProps) {
-    console.log("INDEX RECIBIDO AL INICIO", index)
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [internalOpen, setInternalOpen] = useState(false);

@@ -41,7 +41,7 @@ const docenteFormSchema = z.object({
   apellido: z.string().min(2, { message: "El Apellido debe tener al menos 2 caracteres." }).max(50, { message: "El Apellido no puede exceder los 50 caracteres." }),
   dni: z.string().length(8, { message: "El DNI debe poseer 8 caracteres." }),
   email: z.string().email({ message: "El Correo electrónico debe tener un formato válido." }),
-  telefono: z.string().optional(),
+  telefono: z.string(),
   lenguajesIds: z.array(z.string()),
   disponibilidades: z.array(z.object({
     disponibilidadId: z.string().nullable().optional(),
@@ -132,7 +132,7 @@ export function TeacherFormDialog({ docente, onSave, children, isOpen, onOpenCha
   const onSubmit = async (data: docenteFormValues) => {
     setIsSubmitting(true);
     try {
-      await onSave(data, docente?.id);
+      await onSave(data, docente?.id)
       toast({
         title: docente ? "Docente Actualizado" : "Docente Creado",
         description: `El Docente ${data.nombre} ha sido ${docente ? 'actualizado' : 'creado'} exitosamente.`,
@@ -244,7 +244,9 @@ const onSaveDisponibilidad = async (
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(
+            onSubmit
+          )} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="nombre"

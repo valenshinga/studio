@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -118,11 +117,10 @@ export function StudentFormDialog({ student, onSave, children, isOpen, onOpenCha
         description: `El Alumno ${data.apellido}, ${data.nombre} ha sido ${student ? 'actualizado' : 'creado'} exitosamente.`,
       });
       setOpen(false);
-      form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Hubo un problema al ${student ? 'actualizar' : 'crear'} el Alumno.`,
+        description: error?.message || `Hubo un problema al ${student ? 'actualizar' : 'crear'} el Alumno.`,
         variant: "destructive",
       });
     } finally {
